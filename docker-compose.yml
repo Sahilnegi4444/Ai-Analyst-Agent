@@ -6,13 +6,28 @@ services:
     container_name: ai_analyst_postgres
     restart: always
     environment:
-      POSTGRES_USER: analyst_user
-      POSTGRES_PASSWORD: analyst_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lihasigen4444
       POSTGRES_DB: ai_analyst_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: ai_analyst_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:lihasigen4444@db:5432/ai_analyst_db
+      - GROQ_API_KEY=your_groq_api_key_here
+      - EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+    depends_on:
+      - db
+    volumes:
+      - .:/workspace
 
 volumes:
   postgres_data:

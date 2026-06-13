@@ -55,9 +55,15 @@ def ensure_database_exists():
 
 def init_db():
     """
-    Creates the database schema tables by applying Base metadata.
+    Registers the pgvector extension and creates the database schema.
     """
     print("Initializing database schema...")
+    # Enable pgvector extension
+    with engine.connect() as conn:
+        print("Enabling pgvector extension in the database...")
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        conn.commit()
+        
     # Create all tables defined in models
     print("Creating all tables...")
     Base.metadata.create_all(bind=engine)
@@ -67,7 +73,7 @@ def main():
     # 1. Ensure DB exists in the cluster
     ensure_database_exists()
     
-    # 2. Create schema tables
+    # 2. Create schema tables and extensions
     init_db()
 
     # 3. Ingest CSV data and PDF documents

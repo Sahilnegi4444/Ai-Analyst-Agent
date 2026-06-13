@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "query": "Show top 5 products by revenue.",
+    "expected_intent": "SQL_QUERY",
+    "expected_sql_keywords": ["SELECT", "sales", "products", "total_amount", "GROUP BY", "ORDER BY", "LIMIT"],
+    "expected_sources": [],
+    "expected_facts": ["Smartwatch", "Coffee Maker"]
+  },
+  {
+    "id": 2,
+    "query": "Summarize the inventory management SOP.",
+    "expected_intent": "RAG_QUERY",
+    "expected_sql_keywords": [],
+    "expected_sources": ["inventory_sop.pdf"],
+    "expected_facts": ["reorder point", "reorder quantity", "cycle counts", "physical inventory"]
+  },
+  {
+    "id": 3,
+    "query": "Why did sales decrease in March?",
+    "expected_intent": "HYBRID_QUERY",
+    "expected_sql_keywords": ["SELECT", "sales"],
+    "expected_sources": ["monthly_executive_report_march.pdf"],
+    "expected_facts": ["Product A", "out of stock", "Warehouse A", "delay", "March 5"]
+  },
+  {
+    "id": 4,
+    "query": "What is the inventory turnover ratio?",
+    "expected_intent": "ANALYTICS_QUERY",
+    "expected_sql_keywords": [],
+    "expected_sources": [],
+    "expected_facts": ["inventory_turnover_ratio"]
+  },
+  {
+    "id": 5,
+    "query": "Compare March sales with February.",
+    "expected_intent": "ANALYTICS_QUERY",
+    "expected_sql_keywords": [],
+    "expected_sources": [],
+    "expected_facts": ["monthly_sales_distribution", "2025-03", "2025-02"]
+  },
+  {
+    "id": 6,
+    "query": "Write a quicksort function in Python.",
+    "expected_intent": "UNSUPPORTED_QUERY",
+    "expected_sql_keywords": [],
+    "expected_sources": [],
+    "expected_facts": ["sorry", "assist", "retail"]
+  }
+]

@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Integer, Numeric, Date, DateTime, ForeignKey, Text, Float
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Column, String, Integer, Numeric, Date, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 from app.database import Base
 
 # =====================================================================
@@ -20,7 +20,6 @@ class Supplier(Base):
     rating = Column(Numeric(3, 2))
 
     # Relationships
-    # One supplier supplies multiple products
     products = relationship("Product", back_populates="supplier")
 
 
@@ -222,8 +221,7 @@ class Review(Base):
 class DocumentChunk(Base):
     """
     SQLAlchemy model representing parsed and chunked business documents.
-    Stores native float array embeddings to allow flexible similarity search
-    without requiring third-party PostgreSQL extensions (like pgvector) during local dev.
+    Stores embeddings using pgvector's Vector(384) type.
     """
     __tablename__ = 'document_chunks'
 
@@ -232,5 +230,5 @@ class DocumentChunk(Base):
     title = Column(String(200), nullable=False)
     chunk_index = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
-    # Storing embeddings natively as PostgreSQL array of floats (dimension 384)
-    embedding = Column(ARRAY(Float), nullable=False)
+    # Storing embeddings using pgvector's Vector type
+    embedding = Column(Vector(384), nullable=False)
