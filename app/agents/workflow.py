@@ -300,11 +300,39 @@ agent_app = create_agent_workflow()
 
 class AgentExecutor:
     """
-    Interface wrapper to execute the compiled LangGraph workflow
-    and record observability logs.
+    Interface wrapper to execute the compiled LangGraph workflow,
+    handle query response caching via Redis, and record observability logs.
     """
     @staticmethod
     def run(query: str) -> dict:
+        from app.services.cache_service import RedisCacheService
+        cache_service = RedisCacheService()
+        
+        start_time = time.time()
+        
+        # 1. Try fetching from Redis Cache
+        cached_res = cache_service.get_cached_query(query)
+        if cached_res is not None:
+            latency = time.time() - start_time
+            # Populate latency metrics and cached flag
+            cached_res["start_time"] = start_time
+            cached_res["latency"] = round(latency, 4)
+            cached_res["cached"] = True
+            
+            # Log cached run to observability
+            ObservabilityLogger.log_agent_run(
+                user_query=cached_res["query"],
+                detected_intent=cached_res["intent"].get("intent", "UNKNOWN"),
+                selected_tools=cached_res.get("selected_tools", []),
+                generated_sql=cached_res.get("sql_query"),
+                execution_status=cached_res.get("status", "success"),
+                retrieval_results=cached_res.get("rag_chunks"),
+                latency=cached_res["latency"],
+                cached=True
+            )
+            return cached_res
+            
+        # 2. Cache Miss: Run full LangGraph agent workflow
         initial_state: AgentState = {
             "query": query,
             "intent": {},
@@ -317,12 +345,16 @@ class AgentExecutor:
             "final_response": "",
             "status": "success",
             "selected_tools": [],
-            "start_time": time.time(),
+            "start_time": start_time,
             "latency": 0.0
         }
         
-        # Execute Graph
         final_state = agent_app.invoke(initial_state)
+        
+        # Compute execution latency
+        latency = time.time() - start_time
+        final_state["latency"] = round(latency, 4)
+        final_state["cached"] = False
         
         # Log to observability logger
         ObservabilityLogger.log_agent_run(
@@ -332,7 +364,11 @@ class AgentExecutor:
             generated_sql=final_state["sql_query"],
             execution_status=final_state["status"],
             retrieval_results=final_state["rag_chunks"],
-            latency=final_state["latency"]
+            latency=final_state["latency"],
+            cached=False
         )
+        
+        # 3. Store new response state in Redis Cache
+        cache_service.set_cached_query(query, final_state)
         
         return final_state

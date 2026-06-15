@@ -49,7 +49,8 @@ def chat_with_agent(request: ChatRequest):
             sql_generated=res.get("sql_query"),
             sql_results=res.get("sql_results"),
             sources=sources,
-            latency_seconds=res.get("latency", 0.0)
+            latency_seconds=res.get("latency", 0.0),
+            cached=res.get("cached", False)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent runtime failure: {e}")

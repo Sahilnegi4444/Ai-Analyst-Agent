@@ -104,5 +104,38 @@ class TestAIAnalystAgent(unittest.TestCase):
         ratio = service.calculate_inventory_turnover_ratio()
         self.assertGreater(ratio, 0.0)
 
+    def test_response_caching(self):
+        """Tests that agent queries are cached and served from Redis cache or memory fallback."""
+        from app.agents.workflow import AgentExecutor
+        from app.services.cache_service import RedisCacheService
+        
+        cache_service = RedisCacheService()
+        query = "What is the inventory turnover ratio?"
+        
+        if cache_service.enabled or cache_service.memory_fallback:
+            # Clear key first to ensure cache miss on first call
+            normalized = query.strip().lower()
+            cache_key = f"cache:query:{normalized}"
+            if cache_service.enabled:
+                cache_service.client.delete(cache_key)
+            elif cache_service.memory_fallback:
+                if cache_key in cache_service.memory_cache:
+                    del cache_service.memory_cache[cache_key]
+            
+            # First execution (Cache Miss)
+            res1 = AgentExecutor.run(query)
+            self.assertEqual(res1.get("cached"), False)
+            
+            # Second execution (Cache Hit)
+            res2 = AgentExecutor.run(query)
+            self.assertEqual(res2.get("cached"), True)
+            self.assertEqual(res2.get("final_response"), res1.get("final_response"))
+            self.assertLess(res2.get("latency"), res1.get("latency"))
+        else:
+            # Clean fallback execution test
+            res = AgentExecutor.run(query)
+            self.assertIn("cached", res)
+            self.assertEqual(res.get("cached"), False)
+
 if __name__ == '__main__':
     unittest.main()

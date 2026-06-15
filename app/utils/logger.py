@@ -27,7 +27,8 @@ class ObservabilityLogger:
         generated_sql: Optional[str],
         execution_status: str,
         retrieval_results: Optional[List[dict]],
-        latency: float
+        latency: float,
+        cached: bool = False
     ):
         # Format the log record
         log_record = {
@@ -38,13 +39,14 @@ class ObservabilityLogger:
             "generated_sql": generated_sql,
             "execution_status": execution_status,
             "rag_chunks_count": len(retrieval_results) if retrieval_results else 0,
-            "latency_seconds": round(latency, 4)
+            "latency_seconds": round(latency, 4),
+            "cached": cached
         }
 
         # 1. Output to standard console logs
         logger.info(
             f"[AGENT RUN] Intent: {detected_intent} | Status: {execution_status} | "
-            f"Tools: {selected_tools} | Latency: {latency:.4f}s"
+            f"Tools: {selected_tools} | Latency: {latency:.4f}s | Cached: {cached}"
         )
         if generated_sql:
             logger.info(f"[SQL GENERATED] {generated_sql}")

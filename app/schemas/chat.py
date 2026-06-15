@@ -28,3 +28,4 @@ class ChatResponse(BaseModel):
     sql_results: Optional[List[Dict[str, Any]]] = Field(None, description="Raw rows returned by the SQL engine.")
     sources: Optional[List[SourceAttribution]] = Field(None, description="Document chunks matched via RAG vector search.")
     latency_seconds: float = Field(..., description="Overall latency for the agent invocation in seconds.")
+    cached: bool = Field(False, description="Whether the response was served from cache.")
