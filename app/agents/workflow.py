@@ -174,27 +174,34 @@ def generator_node(state: AgentState) -> AgentState:
         }
 
     # Data Availability Safety check
-    # If the SQL query failed or RAG returned zero chunks (when required), return standard error.
+    # If the query needs data, we only fail immediately if we have zero available sources across all required pathways.
     insufficient_response = json.dumps({
         "status": "insufficient_data",
         "reason": "Requested information does not exist in available sources"
     }, indent=2)
 
-    if state["plan"]["needs_sql"] and (not state["sql_results"] or state["sql_error"]):
-        return {
-            **state,
-            "final_response": insufficient_response,
-            "status": "insufficient_data",
-            "latency": round(latency, 4)
-        }
+    has_sql_data = bool(state["plan"]["needs_sql"] and state["sql_results"] and not state["sql_error"])
+    has_rag_data = bool(state["plan"]["needs_rag"] and state["rag_chunks"])
 
-    if state["plan"]["needs_rag"] and not state["rag_chunks"]:
-        return {
-            **state,
-            "final_response": insufficient_response,
-            "status": "insufficient_data",
-            "latency": round(latency, 4)
-        }
+    # If SQL was required but we have no SQL data AND we don't have RAG data to compensate:
+    if state["plan"]["needs_sql"] and not has_sql_data:
+        if not has_rag_data:
+            return {
+                **state,
+                "final_response": insufficient_response,
+                "status": "insufficient_data",
+                "latency": round(latency, 4)
+            }
+
+    # If RAG was required but we have no RAG data AND we don't have SQL data to compensate:
+    if state["plan"]["needs_rag"] and not has_rag_data:
+        if not has_sql_data:
+            return {
+                **state,
+                "final_response": insufficient_response,
+                "status": "insufficient_data",
+                "latency": round(latency, 4)
+            }
 
     # Generate synthesis prompt
     client = Groq(api_key=settings.GROQ_API_KEY)
@@ -206,7 +213,12 @@ def generator_node(state: AgentState) -> AgentState:
         "1. Base your answer strictly on the provided SQL database results, RAG chunks, and Analytics values.\n"
         "2. Do NOT run calculations or do math in your head. Strictly reference the calculated metrics from the Analytics context.\n"
         "3. Cite your sources by filename when referencing RAG documents (e.g. 'Source: inventory_sop.pdf').\n"
-        "4. If the provided data is empty or does not contain facts necessary to answer the question, you MUST output EXACTLY this JSON payload and nothing else:\n"
+        "4. If the database results or document chunks do not contain the facts necessary to answer parts of the question, "
+        "answer the parts that have data (e.g. state metrics, compare values, list products) and explicitly state that the "
+        "documentation explaining other aspects (e.g. why or seasonality) is missing from the available sources. "
+        "Do NOT hallucinate or guess any explanations not present in the RAG chunks. "
+        "If NO database results, analytics, or document chunks are available at all to answer any part of the query, "
+        "you MUST output EXACTLY this JSON payload and nothing else:\n"
         "{\n"
         "  \"status\": \"insufficient_data\",\n"
         "  \"reason\": \"Requested information does not exist in available sources\"\n"

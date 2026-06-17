@@ -179,6 +179,10 @@ class SQLTool:
                 "error": None
             }
         except Exception as e:
+            try:
+                self.db.rollback()
+            except Exception:
+                pass
             return {
                 "sql_query": sql_query,
                 "status": "execution_failed",
@@ -194,7 +198,8 @@ class SQLTool:
             "Constraints:\n"
             "- Only write SELECT statements.\n"
             "- Never perform DROP, DELETE, UPDATE, INSERT, ALTER, or CREATE operations.\n"
-            "- Output ONLY the raw SQL query. Do not wrap in markdown (like ```sql) or include explanations."
+            "- Output ONLY the raw SQL query. Do not wrap in markdown (like ```sql) or include explanations.\n"
+            "- In PostgreSQL, column aliases created in the SELECT list cannot be used inside mathematical or logical expressions in the ORDER BY clause (e.g. 'ORDER BY september_sales - february_sales' will fail with an UndefinedColumn error). Instead, repeat the full aggregate expressions (e.g. 'ORDER BY SUM(...) - SUM(...)') or use a CTE/subquery to wrap the select and then order the outer query."
         )
 
         prompt = f"""Database Schema:\n{DB_SCHEMA}\n\n"""
@@ -239,4 +244,9 @@ class SQLTool:
             self.db.execute(text(f"EXPLAIN {sql}"))
             return True, None
         except Exception as e:
+            # Rollback aborted transaction so subsequent query attempts can execute
+            try:
+                self.db.rollback()
+            except Exception:
+                pass
             return False, str(e)
