@@ -27,7 +27,7 @@ graph TD
     end
     
     subgraph LangGraph Orchestrator
-        Workflow[LangGraph State Workflow]:::agent
+        WorkflowNode[LangGraph State Workflow]:::agent
         Router[Intent Router Node<br/>Groq Llama-3.1-8b]:::agent
         Planner[Planner Node<br/>Classify SQL/RAG needs]:::agent
         SQLNode[SQL Execution Node]:::agent
@@ -48,11 +48,11 @@ graph TD
     end
 
     %% Flow Connections
-    FE <-->|1. HTTP /chat request| API
-    API <-->|2. Check / Set Cache| Cache
-    API -->|3. Invoke Workflow (Cache Miss)| Workflow
+    FE <-->|"1. HTTP /chat request"| API
+    API <-->|"2. Check / Set Cache"| Cache
+    API -->|"3. Invoke Workflow (Cache Miss)"| WorkflowNode
     
-    Workflow --> Router
+    WorkflowNode --> Router
     Router --> Planner
     Planner --> SQLNode
     Planner --> RAGNode
@@ -62,16 +62,16 @@ graph TD
     RAGNode --> RAGTool
     AnalNode --> AnalTool
     
-    SQLTool <-->|Read & Dry-Run EXPLAIN| DB
-    RAGTool <-->|Vector Cosine Search| DB
-    AnalTool <-->|Execute Core Calculations| DB
+    SQLTool <-->|"Read & Dry-Run EXPLAIN"| DB
+    RAGTool <-->|"Vector Cosine Search"| DB
+    AnalTool <-->|"Execute Core Calculations"| DB
     
     SQLTool --> GenNode
     RAGTool --> GenNode
     AnalTool --> GenNode
     
-    GenNode -->|4. Return Final State| Workflow
-    Workflow -->|5. Return API Payload| API
+    GenNode -->|"4. Return Final State"| WorkflowNode
+    WorkflowNode -->|"5. Return API Payload"| API
     GenNode -.->|Write execution trace| Obs
 ```
 
