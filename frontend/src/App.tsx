@@ -53,27 +53,22 @@ interface Message {
 // SQL RESULTS WIDGET COMPONENT
 // =====================================================================
 const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
-  const [viewType, setViewType] = useState<'chart' | 'table'>('chart')
-
-  if (!results || results.length === 0) {
-    return null
-  }
-
   // Analyze the data structure
-  const firstRow = results[0]
-  const keys = Object.keys(firstRow)
-
-  // Identify numeric keys (excluding potential primary/foreign IDs)
-  const numericKeys = keys.filter(key => {
-    const val = firstRow[key]
-    const isId = key.toLowerCase().includes('id')
-    return typeof val === 'number' && !isId
-  })
+  const firstRow = results && results.length > 0 ? results[0] : null
+  const keys = firstRow ? Object.keys(firstRow) : []
 
   // Identify label keys (X-axis)
   const dateKeys = keys.filter(key => {
     const name = key.toLowerCase()
     return name.includes('month') || name.includes('date') || name.includes('week') || name.includes('year')
+  })
+
+  // Identify numeric keys (excluding potential primary/foreign IDs and date-related fields)
+  const numericKeys = keys.filter(key => {
+    const val = firstRow[key]
+    const isId = key.toLowerCase().includes('id')
+    const isDate = dateKeys.includes(key)
+    return typeof val === 'number' && !isId && !isDate
   })
 
   const labelKeys = keys.filter(key => {
@@ -83,79 +78,116 @@ const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
 
   // Determine standard configurations
   const yAxisKey = numericKeys[0] || null
-  const xAxisKey = dateKeys[0] || labelKeys[0] || null
+
+  // Prioritize date, then week, then month, then year for X-axis key to prevent year-only labeling
+  const prioritizedDateKeys = [...dateKeys].sort((a, b) => {
+    const order = ['date', 'week', 'month', 'year']
+    const idxA = order.findIndex(term => a.toLowerCase().includes(term))
+    const idxB = order.findIndex(term => b.toLowerCase().includes(term))
+    return idxA - idxB
+  })
+  const xAxisKey = prioritizedDateKeys[0] || labelKeys[0] || null
 
   // If no columns are suitable for plotting, default to table view
-  const canPlot = yAxisKey && xAxisKey
-  const activeView = canPlot ? viewType : 'table'
-
-  // Determine if chronological (Area Chart) vs comparison (Bar Chart)
+  const canPlot = !!(yAxisKey && xAxisKey)
   const isChronological = dateKeys.length > 0
+
+  const [viewType, setViewType] = useState<'area' | 'bar' | 'table'>(
+    canPlot ? (isChronological ? 'area' : 'bar') : 'table'
+  )
+
+  if (!results || results.length === 0) {
+    return null
+  }
 
   return (
     <div className="chart-card">
       <div className="widget-header">
         <span className="widget-title">
-          {activeView === 'chart' ? (
+          {viewType === 'area' && (
             <>
               <BarChart3 size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-              Visualized Results ({isChronological ? 'Line Trend' : 'Bar Comparison'})
+              Visualized Results (Line Trend)
             </>
-          ) : (
+          )}
+          {viewType === 'bar' && (
+            <>
+              <BarChart3 size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+              Visualized Results (Bar Comparison)
+            </>
+          )}
+          {viewType === 'table' && (
             <>
               <Table2 size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
               Raw Database Records ({results.length} rows)
             </>
           )}
         </span>
-        {canPlot && (
-          <button className="toggle-btn" onClick={() => setViewType(viewType === 'chart' ? 'table' : 'chart')}>
-            {viewType === 'chart' ? (
-              <>
-                <Table2 size={14} /> Show Table
-              </>
-            ) : (
-              <>
-                <BarChart3 size={14} /> Show Chart
-              </>
-            )}
+        <div className="widget-controls" style={{ display: 'flex', gap: '6px' }}>
+          {canPlot && (
+            <>
+              <button
+                className={`toggle-btn ${viewType === 'area' ? 'active' : ''}`}
+                onClick={() => setViewType('area')}
+              >
+                Line
+              </button>
+              <button
+                className={`toggle-btn ${viewType === 'bar' ? 'active' : ''}`}
+                onClick={() => setViewType('bar')}
+              >
+                Bar
+              </button>
+            </>
+          )}
+          <button
+            className={`toggle-btn ${viewType === 'table' ? 'active' : ''}`}
+            onClick={() => setViewType('table')}
+          >
+            Table
           </button>
-        )}
+        </div>
       </div>
 
-      {activeView === 'chart' && yAxisKey && xAxisKey ? (
+      {viewType === 'area' && yAxisKey && xAxisKey && (
         <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer width="99%" height="100%">
-            {isChronological ? (
-              <AreaChart data={results} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="chartColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey={xAxisKey} tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
-                <YAxis tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border)', color: 'var(--text-h)', borderRadius: 8 }}
-                />
-                <Area type="monotone" dataKey={yAxisKey} stroke="var(--accent)" fillOpacity={1} fill="url(#chartColor)" strokeWidth={2} />
-              </AreaChart>
-            ) : (
-              <BarChart data={results} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey={xAxisKey} tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
-                <YAxis tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border)', color: 'var(--text-h)', borderRadius: 8 }}
-                />
-                <Bar dataKey={yAxisKey} fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={45} />
-              </BarChart>
-            )}
+            <AreaChart data={results} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="chartColor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey={xAxisKey} tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
+              <YAxis tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
+              <Tooltip
+                contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border)', color: 'var(--text-h)', borderRadius: 8 }}
+              />
+              <Area type="monotone" dataKey={yAxisKey} stroke="var(--accent)" fillOpacity={1} fill="url(#chartColor)" strokeWidth={2} />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
-      ) : (
+      )}
+
+      {viewType === 'bar' && yAxisKey && xAxisKey && (
+        <div style={{ width: '100%', height: 260 }}>
+          <ResponsiveContainer width="99%" height="100%">
+            <BarChart data={results} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey={xAxisKey} tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
+              <YAxis tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
+              <Tooltip
+                contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border)', color: 'var(--text-h)', borderRadius: 8 }}
+              />
+              <Bar dataKey={yAxisKey} fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={45} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {viewType === 'table' && (
         <div className="data-table-container">
           <table className="data-table">
             <thead>

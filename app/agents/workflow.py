@@ -165,11 +165,28 @@ def generator_node(state: AgentState) -> AgentState:
     latency = time.time() - state["start_time"]
     
     intent_type = state["intent"].get("intent", "UNSUPPORTED_QUERY")
+    if intent_type == "SECURITY_VIOLATION":
+        return {
+            **state,
+            "final_response": "I cannot perform this operation. Bypassing read-only database controls or attempting to modify/delete records is strictly prohibited.",
+            "status": "security_violation",
+            "latency": round(latency, 4)
+        }
+
     if intent_type == "UNSUPPORTED_QUERY":
         return {
             **state,
             "final_response": "I'm sorry, but I can only assist with retail database operations and company documentation queries.",
             "status": "unsupported_query",
+            "latency": round(latency, 4)
+        }
+
+    # 1. Direct Security Block Check
+    if state["sql_error"] and "security violation" in state["sql_error"].lower():
+        return {
+            **state,
+            "final_response": "I cannot perform this operation. Bypassing read-only database controls or attempting to modify/delete records is strictly prohibited.",
+            "status": "security_violation",
             "latency": round(latency, 4)
         }
 

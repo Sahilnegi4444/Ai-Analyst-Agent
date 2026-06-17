@@ -127,7 +127,7 @@ class SQLTool:
             return {
                 "sql_query": sql_query,
                 "status": "security_violation",
-                "error": "Query rejected: Data modification (DROP, DELETE, UPDATE, ALTER, TRUNCATE, INSERT, CREATE) is strictly prohibited.",
+                "error": "Security Violation: Database modification (DROP, DELETE, UPDATE, ALTER, TRUNCATE, INSERT, CREATE) is strictly prohibited.",
                 "results": None
             }
 
@@ -144,7 +144,7 @@ class SQLTool:
                 return {
                     "sql_query": sql_query,
                     "status": "security_violation",
-                    "error": "Query rejected after self-correction: Data modification attempted.",
+                    "error": "Security Violation: Database modification attempted after self-correction.",
                     "results": None
                 }
             syntax_ok, error_msg = self._validate_syntax(sql_query)

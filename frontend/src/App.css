@@ -44,6 +44,7 @@
   letter-spacing: -0.5px;
   background: linear-gradient(135deg, #a5b4fc, var(--accent));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: flex;
   align-items: center;
@@ -206,6 +207,7 @@
   margin-bottom: 8px;
   background: linear-gradient(135deg, var(--accent), #f43f5e);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -355,6 +357,12 @@
 
 .toggle-btn:hover {
   background-color: var(--code-bg);
+}
+
+.toggle-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 .data-table-container {
