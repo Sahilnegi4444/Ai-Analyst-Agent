@@ -104,22 +104,35 @@ class SQLTool:
     """
     Tool responsible for generating safe, read-only SQL queries from user questions,
     validating syntax via dry-runs, and returning structured database records.
+    Uses dynamic schema retrieval and SQL statement caching.
     """
     def __init__(self, db: Session):
         self.db = db
         self.client = Groq(api_key=settings.GROQ_API_KEY)
         self.model = settings.GROQ_SQL_MODEL
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
 
     def execute_query(self, user_question: str) -> dict:
         """
         Generates and executes a SQL query to answer the user question.
-        
-        Returns:
-            dict: Containing 'sql_query', 'status', 'results' or 'error' logs.
+        Check cache first to skip LLM generation on cache hit.
         """
-        # 1. Generate SQL query via Groq LLM
-        sql_query = self._generate_sql(user_question)
-        print(f"Generated SQL: {sql_query}")
+        from app.services.cache_service import RedisCacheService
+        cache_service = RedisCacheService()
+        
+        # 1. Try to get SQL query from Redis Cache
+        cached_sql = cache_service.get_cached_sql(user_question)
+        is_cached = False
+        
+        if cached_sql:
+            sql_query = cached_sql
+            print(f"[SQL CACHE HIT] SQL query served from cache: {sql_query}")
+            is_cached = True
+        else:
+            # Generate SQL query via Groq LLM
+            sql_query = self._generate_sql(user_question)
+            print(f"Generated SQL: {sql_query}")
 
         # 2. Safety check: Guard against modifying commands
         if not self._is_read_only(sql_query):
@@ -128,7 +141,10 @@ class SQLTool:
                 "sql_query": sql_query,
                 "status": "security_violation",
                 "error": "Security Violation: Database modification (DROP, DELETE, UPDATE, ALTER, TRUNCATE, INSERT, CREATE) is strictly prohibited.",
-                "results": None
+                "results": None,
+                "prompt_tokens": self.prompt_tokens,
+                "completion_tokens": self.completion_tokens,
+                "cached": False
             }
 
         # 3. Dry-run syntax validation using EXPLAIN
@@ -145,7 +161,10 @@ class SQLTool:
                     "sql_query": sql_query,
                     "status": "security_violation",
                     "error": "Security Violation: Database modification attempted after self-correction.",
-                    "results": None
+                    "results": None,
+                    "prompt_tokens": self.prompt_tokens,
+                    "completion_tokens": self.completion_tokens,
+                    "cached": False
                 }
             syntax_ok, error_msg = self._validate_syntax(sql_query)
             if not syntax_ok:
@@ -153,8 +172,15 @@ class SQLTool:
                     "sql_query": sql_query,
                     "status": "syntax_error",
                     "error": f"SQL Syntax Validation Failed: {error_msg}",
-                    "results": None
+                    "results": None,
+                    "prompt_tokens": self.prompt_tokens,
+                    "completion_tokens": self.completion_tokens,
+                    "cached": False
                 }
+
+        # Cache successful generated SQL
+        if not is_cached:
+            cache_service.set_cached_sql(user_question, sql_query)
 
         # 4. Execute the query
         try:
@@ -176,6 +202,9 @@ class SQLTool:
                 "sql_query": sql_query,
                 "status": "success",
                 "results": rows,
+                "prompt_tokens": self.prompt_tokens,
+                "completion_tokens": self.completion_tokens,
+                "cached": is_cached,
                 "error": None
             }
         except Exception as e:
@@ -187,11 +216,16 @@ class SQLTool:
                 "sql_query": sql_query,
                 "status": "execution_failed",
                 "error": f"Execution Error: {e}",
+                "prompt_tokens": self.prompt_tokens,
+                "completion_tokens": self.completion_tokens,
+                "cached": is_cached,
                 "results": None
             }
 
     def _generate_sql(self, question: str, syntax_error: str = None) -> str:
-        """Sends prompt to Groq to generate standard PostgreSQL SELECT statement."""
+        """Sends prompt to Groq using dynamic schema retrieval."""
+        from app.services.schema_indexer import SchemaIndexer
+        
         system_prompt = (
             "You are a PostgreSQL expert database analyst. Your task is to output a clean, "
             "syntactically correct PostgreSQL SELECT statement to answer the user's question.\n"
@@ -199,10 +233,15 @@ class SQLTool:
             "- Only write SELECT statements.\n"
             "- Never perform DROP, DELETE, UPDATE, INSERT, ALTER, or CREATE operations.\n"
             "- Output ONLY the raw SQL query. Do not wrap in markdown (like ```sql) or include explanations.\n"
+            "- Ignore parts of the user question that request general company policies, SOPs, rules, procedures, handbooks, or contracts. Those are handled by a separate document search system. Only write SELECT queries for structured database lookups (sales, transactions, products, inventory tables).\n"
             "- In PostgreSQL, column aliases created in the SELECT list cannot be used inside mathematical or logical expressions in the ORDER BY clause (e.g. 'ORDER BY september_sales - february_sales' will fail with an UndefinedColumn error). Instead, repeat the full aggregate expressions (e.g. 'ORDER BY SUM(...) - SUM(...)') or use a CTE/subquery to wrap the select and then order the outer query."
         )
 
-        prompt = f"""Database Schema:\n{DB_SCHEMA}\n\n"""
+        # Retrieve Top 4 relevant tables dynamically from pgvector
+        schema_indexer = SchemaIndexer(self.db)
+        relevant_schema = schema_indexer.retrieve_relevant_schemas(question, top_n=4)
+        
+        prompt = f"""Database Schema:\n{relevant_schema}\n\n"""
         
         if syntax_error:
             prompt += f"Note: Your previous query failed syntax validation with the following error: {syntax_error}\nPlease correct it.\n\n"
@@ -218,6 +257,10 @@ class SQLTool:
             temperature=0.0
         )
         
+        # Accumulate token metrics
+        self.prompt_tokens += response.usage.prompt_tokens
+        self.completion_tokens += response.usage.completion_tokens
+        
         sql = response.choices[0].message.content.strip()
         # Clean any accidental markdown wrap
         sql = re.sub(r"^```sql\s*", "", sql, flags=re.IGNORECASE)
@@ -231,7 +274,6 @@ class SQLTool:
         """Verifies that the query does not contain mutating keywords (read-only guardrail)."""
         unsafe_keywords = ["DROP", "DELETE", "UPDATE", "ALTER", "TRUNCATE", "INSERT", "GRANT", "REVOKE", "CREATE"]
         for kw in unsafe_keywords:
-            # Word boundary search to prevent false positives on sub-words
             pattern = rf"\b{kw}\b"
             if re.search(pattern, sql, re.IGNORECASE):
                 return False
@@ -240,11 +282,9 @@ class SQLTool:
     def _validate_syntax(self, sql: str) -> tuple[bool, str]:
         """Runs a dry-run EXPLAIN command on the database to verify SQL syntax validity."""
         try:
-            # EXPLAIN checks parsing without executing actual side-effects
             self.db.execute(text(f"EXPLAIN {sql}"))
             return True, None
         except Exception as e:
-            # Rollback aborted transaction so subsequent query attempts can execute
             try:
                 self.db.rollback()
             except Exception:

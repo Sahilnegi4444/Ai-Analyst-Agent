@@ -456,24 +456,6 @@ function App() {
                       <SqlResultsWidget results={msg.sql_results} />
                     )}
 
-                    {/* COLLAPSIBLE SQL DRAWERS */}
-                    {msg.sender === 'agent' && msg.sql_generated && (
-                      <div className="sql-accordion">
-                        <div className="sql-header" onClick={() => toggleSql(msg.id)}>
-                          <span style={{ fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-h)' }}>
-                            <Terminal size={14} />
-                            Generated PostgreSQL Query
-                          </span>
-                          {expandedSql[msg.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        </div>
-                        {expandedSql[msg.id] && (
-                          <div className="sql-content">
-                            <pre className="sql-code">{msg.sql_generated}</pre>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                     {/* RAG CITATIONS WIDGET */}
                     {msg.sender === 'agent' && msg.sources && msg.sources.length > 0 && (
                       <div className="citations-panel">

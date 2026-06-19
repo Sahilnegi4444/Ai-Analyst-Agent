@@ -99,6 +99,11 @@ def main():
         # Ingest and embed PDF business documents for RAG
         ingestor.ingest_pdf_documents("data/documents")
         
+        # Index database schemas for dynamic retrieval
+        from app.services.schema_indexer import SchemaIndexer
+        schema_indexer = SchemaIndexer(db)
+        schema_indexer.index_schemas()
+        
         print("\n==============================================")
         print("DATABASE INGESTION COMPLETED SUCCESSFULLY!")
         print("==============================================")

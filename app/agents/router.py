@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from groq import Groq
 from app.config import settings
 
@@ -13,6 +14,68 @@ class IntentRouter:
         self.client = Groq(api_key=settings.GROQ_API_KEY)
         self.model = settings.GROQ_ROUTER_MODEL
 
+    def route_by_rules(self, query: str) -> dict:
+        """
+        Determines query intent using simple regex/keyword heuristics.
+        Returns a dict if a high-confidence match is found, else None.
+        """
+        query_lower = query.lower()
+
+        # 1. SECURITY VIOLATION: Check mutating keywords or injection attempts
+        security_keywords = ["delete", "drop", "update", "insert", "alter", "truncate", "bypass", "grant", "revoke"]
+        if any(re.search(rf"\b{kw}\b", query_lower) for kw in security_keywords) or "bypass security" in query_lower:
+            return {
+                "intent": "SECURITY_VIOLATION",
+                "needs_sql": False,
+                "needs_rag": False,
+                "explanation": "Rule-based match: Potential security boundary violation or database mutation query detected."
+            }
+
+        # Scan for intent keywords
+        hybrid_keywords = ["why", "explain", "reason", "impact", "seasonality", "difference"]
+        analytics_keywords = ["turnover", "mom", "growth", "ratio", "calculations", "analysis", "analysing", "analyzing", "compare"]
+        rag_keywords = ["policy", "sop", "handbook", "contract", "procedure", "rule", "manual", "sla", "penalty"]
+        sql_keywords = ["revenue", "sales", "profit", "inventory", "customer", "supplier", "product", "transaction", "return", "review", "top", "most sold", "how many", "list", "show"]
+
+        has_hybrid = any(re.search(rf"\b{kw}\b", query_lower) for kw in hybrid_keywords)
+        has_analytics = any(re.search(rf"\b{kw}\b", query_lower) for kw in analytics_keywords)
+        has_rag = any(re.search(rf"\b{kw}\b", query_lower) for kw in rag_keywords)
+        has_sql = any(re.search(rf"\b{kw}\b", query_lower) for kw in sql_keywords)
+
+        # Ambiguous/Overlap check: If hybrid keywords are found, or BOTH SQL and RAG elements appear,
+        # fallback to semantic LLM routing so it can parse grammar and relationships.
+        if has_hybrid or (has_sql and has_rag):
+            return None
+
+        # 2. Pure RAG query (contains RAG keywords, but no SQL keywords)
+        if has_rag and not has_sql:
+            return {
+                "intent": "RAG_QUERY",
+                "needs_sql": False,
+                "needs_rag": True,
+                "explanation": "Rule-based match: Pure document search query."
+            }
+
+        # 3. Pure SQL query (contains SQL keywords, but no RAG or Analytics keywords)
+        if has_sql and not has_rag and not has_analytics:
+            return {
+                "intent": "SQL_QUERY",
+                "needs_sql": True,
+                "needs_rag": False,
+                "explanation": "Rule-based match: Pure database query requested."
+            }
+
+        # 4. Pure Analytics query (contains Analytics keywords, but no RAG keywords)
+        if has_analytics and not has_rag:
+            return {
+                "intent": "ANALYTICS_QUERY",
+                "needs_sql": True,
+                "needs_rag": False,
+                "explanation": "Rule-based match: Analytics calculation requested."
+            }
+
+        return None
+
     def route_intent(self, query: str) -> dict:
         """
         Classifies user query into one of: SQL_QUERY, RAG_QUERY, HYBRID_QUERY, ANALYTICS_QUERY, UNSUPPORTED_QUERY.
@@ -20,6 +83,18 @@ class IntentRouter:
         Returns:
             dict: Structured classification containing 'intent', 'needs_sql', 'needs_rag', and 'explanation'.
         """
+        import re
+        
+        # 1. Run rule-based router first
+        rule_res = self.route_by_rules(query)
+        if rule_res is not None:
+            print(f"[RULE ROUTER] Match found: {rule_res['intent']}")
+            # Track router type for observability
+            rule_res["router_type"] = "rule"
+            return rule_res
+
+        # 2. Fallback to LLM-based router
+        print("[LLM ROUTER] Falling back to LLM intent routing...")
         system_instructions = (
             "You are a routing agent for an enterprise business intelligence assistant. "
             "Your job is to analyze the query and return a JSON object classifying the intent. "
@@ -79,6 +154,10 @@ JSON response:"""
             # Standardize returned keys
             result["needs_sql"] = bool(result.get("needs_sql", False))
             result["needs_rag"] = bool(result.get("needs_rag", False))
+            result["router_type"] = "llm"
+            # Add token usage for routing
+            result["prompt_tokens"] = response.usage.prompt_tokens
+            result["completion_tokens"] = response.usage.completion_tokens
             return result
             
         except Exception as e:
@@ -88,5 +167,6 @@ JSON response:"""
                 "intent": "UNSUPPORTED_QUERY",
                 "needs_sql": False,
                 "needs_rag": False,
+                "router_type": "fallback",
                 "explanation": f"Intent router error: {e}"
             }

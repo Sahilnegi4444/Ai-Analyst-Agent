@@ -1,12 +1,15 @@
 from sqlalchemy.orm import Session
 from app.repositories import DocumentRepository
 from app.services.embedding import EmbeddingService
+from app.services.hybrid_retriever import HybridRetriever
+from app.services.context_compressor import ContextCompressor
+from app.services.cache_service import RedisCacheService
 from typing import List, Dict, Any
 
 class RAGTool:
     """
-    Tool responsible for performing vector similarity search on ingested PDF documents
-    and returning the most relevant chunks with source attribution and confidence scores.
+    Optimized RAG tool that uses hybrid search retrieval (vector + BM25 + exact boosts),
+    reranking via a CrossEncoder, and Llama-3.1-8b based chunk context compression.
     """
     def __init__(self, db: Session):
         self.db = db
@@ -15,46 +18,79 @@ class RAGTool:
 
     def retrieve_context(self, query: str, top_k: int = 3) -> Dict[str, Any]:
         """
-        Generates query vector embedding and searches document database for top-k matches.
-        
-        Returns:
-            dict: Containing 'chunks' (list of text chunks with metadata) and 'status'.
+        Retrieves context using hybrid search, reranking, and compression.
+        Utilizes Redis to cache retrieved and compressed text.
         """
         try:
-            # 1. Generate search query embedding
-            query_vector = self.embedding_service.get_embedding(query)
+            cache_service = RedisCacheService()
+            
+            # 1. Try to fetch from retrieval cache
+            cached_results = cache_service.get_cached_retrieval(query)
+            if cached_results is not None:
+                return {
+                    "status": "success",
+                    "chunks": cached_results,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "error": None
+                }
 
-            # 2. Query documents using pgvector cosine similarity search
-            similar_chunks = self.doc_repository.search_similar(query_vector, limit=top_k)
+            # 2. Cache Miss: Execute hybrid search & reranking
+            retriever = HybridRetriever(self.db)
+            similar_chunks = retriever.retrieve(query, top_k=top_k)
 
-            # 3. Format results with source attribution and confidence score
+            # 3. Dynamic context compression with Llama model
+            compressor = ContextCompressor()
             results = []
-            for chunk, distance in similar_chunks:
-                # Cosine similarity = 1.0 - cosine_distance
-                confidence = round(1.0 - distance, 4)
-                
+            
+            total_prompt_tokens = 0
+            total_completion_tokens = 0
+
+            for chunk, confidence in similar_chunks:
+                # Check cache for this specific compressed chunk
+                cached_comp = cache_service.get_cached_compressed(query, chunk.chunk_index)
+                if cached_comp:
+                    compressed_text = cached_comp
+                else:
+                    # Compress chunk content
+                    comp_res = compressor.compress_chunk(query, chunk.content)
+                    compressed_text = comp_res["compressed_text"]
+                    total_prompt_tokens += comp_res.get("prompt_tokens", 0)
+                    total_completion_tokens += comp_res.get("completion_tokens", 0)
+                    
+                    # Cache compressed content
+                    cache_service.set_cached_compressed(query, chunk.chunk_index, compressed_text)
+
                 results.append({
                     "filename": chunk.filename,
                     "title": chunk.title,
-                    "content": chunk.content,
+                    "content": compressed_text,
+                    "raw_content": chunk.content,
                     "confidence": confidence
                 })
+
+            # 4. Cache full RAG results
+            cache_service.set_cached_retrieval(query, results)
 
             return {
                 "status": "success",
                 "chunks": results,
+                "prompt_tokens": total_prompt_tokens,
+                "completion_tokens": total_completion_tokens,
                 "error": None
             }
         except Exception as e:
-            print(f"[ERROR] RAG Retrieval failure: {e}")
+            print(f"[ERROR] Optimized RAG Retrieval failure: {e}")
             return {
                 "status": "failed",
                 "chunks": [],
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
                 "error": str(e)
             }
         
     def format_context_string(self, chunks: List[dict]) -> str:
-        """Formats RAG chunks into a single text block for the LLM prompt."""
+        """Formats compressed RAG chunks into a single text block for the LLM prompt."""
         if not chunks:
             return "No relevant documentation found."
             
@@ -68,3 +104,4 @@ class RAGTool:
             )
             formatted_blocks.append(block)
         return "\n\n".join(formatted_blocks)
+

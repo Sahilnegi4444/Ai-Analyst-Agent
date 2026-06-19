@@ -19,10 +19,10 @@ class EmbeddingService:
 
     def get_embedding(self, text: str) -> List[float]:
         """Generate vector embedding for a single text chunk."""
-        embedding = self.model.encode(text)
+        embedding = self.model.encode(text, normalize_embeddings=True)
         return embedding.tolist()
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Generate vector embeddings for a batch of text chunks."""
-        embeddings = self.model.encode(texts)
+        embeddings = self.model.encode(texts, normalize_embeddings=True)
         return embeddings.tolist()

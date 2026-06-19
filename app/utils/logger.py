@@ -28,7 +28,12 @@ class ObservabilityLogger:
         execution_status: str,
         retrieval_results: Optional[List[dict]],
         latency: float,
-        cached: bool = False
+        cached: bool = False,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        sql_latency: float = 0.0,
+        retrieval_latency: float = 0.0,
+        analytics_latency: float = 0.0
     ):
         # Format the log record
         log_record = {
@@ -40,13 +45,19 @@ class ObservabilityLogger:
             "execution_status": execution_status,
             "rag_chunks_count": len(retrieval_results) if retrieval_results else 0,
             "latency_seconds": round(latency, 4),
-            "cached": cached
+            "cached": cached,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "sql_latency_seconds": round(sql_latency, 4),
+            "retrieval_latency_seconds": round(retrieval_latency, 4),
+            "analytics_latency_seconds": round(analytics_latency, 4)
         }
 
         # 1. Output to standard console logs
         logger.info(
             f"[AGENT RUN] Intent: {detected_intent} | Status: {execution_status} | "
-            f"Tools: {selected_tools} | Latency: {latency:.4f}s | Cached: {cached}"
+            f"Tools: {selected_tools} | Latency: {latency:.4f}s | Cached: {cached} | "
+            f"Tokens: {prompt_tokens}p + {completion_tokens}c = {prompt_tokens + completion_tokens}"
         )
         if generated_sql:
             logger.info(f"[SQL GENERATED] {generated_sql}")

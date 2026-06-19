@@ -12,6 +12,7 @@ from app.tools.sql_tool import SQLTool
 from app.tools.rag_tool import RAGTool
 from app.tools.analytics_tool import AnalyticsTool
 from app.utils.logger import ObservabilityLogger
+from app.services.result_summarizer import ResultSummarizer
 
 # =====================================================================
 # LANGGRAPH STATE DEFINITION
@@ -19,6 +20,7 @@ from app.utils.logger import ObservabilityLogger
 class AgentState(TypedDict):
     """
     TypedDict representing the state graph context passed between nodes.
+    Includes token counts and detailed performance metrics.
     """
     query: str
     intent: Dict[str, Any]
@@ -33,6 +35,12 @@ class AgentState(TypedDict):
     selected_tools: List[str]
     start_time: float
     latency: float
+    # Extended metrics
+    prompt_tokens: int
+    completion_tokens: int
+    sql_latency: float
+    retrieval_latency: float
+    analytics_latency: float
 
 # =====================================================================
 # NODE FUNCTIONS
@@ -42,9 +50,15 @@ def intent_node(state: AgentState) -> AgentState:
     """Classifies the incoming user query into an intent category."""
     router = IntentRouter()
     intent_res = router.route_intent(state["query"])
+    
+    prompt_tokens = state.get("prompt_tokens", 0) + intent_res.get("prompt_tokens", 0)
+    completion_tokens = state.get("completion_tokens", 0) + intent_res.get("completion_tokens", 0)
+    
     return {
         **state,
-        "intent": intent_res
+        "intent": intent_res,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens
     }
 
 def planner_node(state: AgentState) -> AgentState:
@@ -65,9 +79,7 @@ def planner_node(state: AgentState) -> AgentState:
 
 def sql_node(state: AgentState) -> AgentState:
     """Runs the SQL tool if the plan requires structured database access."""
-    if not state["plan"]["needs_sql"]:
-        return state
-
+    sql_start = time.time()
     db = SessionLocal()
     selected_tools = list(state["selected_tools"])
     selected_tools.append("sql_tool")
@@ -76,21 +88,26 @@ def sql_node(state: AgentState) -> AgentState:
         sql_tool = SQLTool(db)
         res = sql_tool.execute_query(state["query"])
         
+        sql_latency = time.time() - sql_start
+        prompt_tokens = state.get("prompt_tokens", 0) + res.get("prompt_tokens", 0)
+        completion_tokens = state.get("completion_tokens", 0) + res.get("completion_tokens", 0)
+        
         return {
             **state,
             "sql_query": res.get("sql_query"),
             "sql_results": res.get("results"),
             "sql_error": res.get("error"),
-            "selected_tools": selected_tools
+            "selected_tools": selected_tools,
+            "sql_latency": round(sql_latency, 4),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens
         }
     finally:
         db.close()
 
 def rag_node(state: AgentState) -> AgentState:
     """Runs the RAG tool if the plan requires unstructured document context."""
-    if not state["plan"]["needs_rag"]:
-        return state
-
+    rag_start = time.time()
     db = SessionLocal()
     selected_tools = list(state["selected_tools"])
     selected_tools.append("rag_tool")
@@ -99,19 +116,24 @@ def rag_node(state: AgentState) -> AgentState:
         rag_tool = RAGTool(db)
         res = rag_tool.retrieve_context(state["query"], top_k=3)
         
+        retrieval_latency = time.time() - rag_start
+        prompt_tokens = state.get("prompt_tokens", 0) + res.get("prompt_tokens", 0)
+        completion_tokens = state.get("completion_tokens", 0) + res.get("completion_tokens", 0)
+        
         return {
             **state,
             "rag_chunks": res.get("chunks", []),
-            "selected_tools": selected_tools
+            "selected_tools": selected_tools,
+            "retrieval_latency": round(retrieval_latency, 4),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens
         }
     finally:
         db.close()
 
 def analytics_node(state: AgentState) -> AgentState:
     """Runs the Python/Pandas analytics calculations if required."""
-    if not state["plan"]["needs_analytics"]:
-        return state
-
+    analytics_start = time.time()
     selected_tools = list(state["selected_tools"])
     selected_tools.append("analytics_tool")
     analytics_tool = AnalyticsTool()
@@ -153,10 +175,12 @@ def analytics_node(state: AgentState) -> AgentState:
         if res_inv.get("status") == "success":
             results["inventory_summary_kpis"] = res_inv["results"]
 
+    analytics_latency = time.time() - analytics_start
     return {
         **state,
         "analytics_results": results,
-        "selected_tools": selected_tools
+        "selected_tools": selected_tools,
+        "analytics_latency": round(analytics_latency, 4)
     }
 
 def generator_node(state: AgentState) -> AgentState:
@@ -191,7 +215,6 @@ def generator_node(state: AgentState) -> AgentState:
         }
 
     # Data Availability Safety check
-    # If the query needs data, we only fail immediately if we have zero available sources across all required pathways.
     insufficient_response = json.dumps({
         "status": "insufficient_data",
         "reason": "Requested information does not exist in available sources"
@@ -240,18 +263,28 @@ def generator_node(state: AgentState) -> AgentState:
         "  \"status\": \"insufficient_data\",\n"
         "  \"reason\": \"Requested information does not exist in available sources\"\n"
         "}\n"
-        "5. Keep the response factual, concise, and structured with professional markdown formatting."
+        "5. Keep the response factual, concise, and structured with professional markdown formatting.\n"
+        "6. Never output raw SQL code blocks, SELECT statements, or SQL queries in your response text. The final user does not understand SQL. Explain results conceptually in plain, professional English."
     )
 
     context = f"User Question: \"{state['query']}\"\n\n"
     
+    # 2. Inject compressed or raw SQL results
     if state["sql_query"]:
         results = state["sql_results"] or []
-        if len(results) > 50:
-            truncated = results[:50]
-            context += f"--- SQL Database Context (Truncated to first 50 of {len(results)} rows to save tokens) ---\nQuery: {state['sql_query']}\nResults:\n{json.dumps(truncated, indent=2)}\n\n"
+        
+        # Decide if we can compress the SQL dataset
+        if ResultSummarizer.should_keep_raw(state["query"], len(results)):
+            # User wants row-level details explicitly
+            if len(results) > 50:
+                truncated = results[:50]
+                context += f"--- SQL Database Context (Truncated to first 50 of {len(results)} rows to save tokens) ---\nQuery: {state['sql_query']}\nResults:\n{json.dumps(truncated, indent=2)}\n\n"
+            else:
+                context += f"--- SQL Database Context ---\nQuery: {state['sql_query']}\nResults:\n{json.dumps(results, indent=2)}\n\n"
         else:
-            context += f"--- SQL Database Context ---\nQuery: {state['sql_query']}\nResults:\n{json.dumps(results, indent=2)}\n\n"
+            # Compress results to save tokens
+            summary = ResultSummarizer.summarize(results, state["query"])
+            context += f"--- SQL Database Context (Summarized to save tokens) ---\nQuery: {state['sql_query']}\nResults Summary:\n{json.dumps(summary, indent=2)}\n\n"
         
     if state["rag_chunks"]:
         formatted_rag = []
@@ -272,7 +305,7 @@ def generator_node(state: AgentState) -> AgentState:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context}
             ],
-            model=settings.GROQ_GENERATOR_MODEL,  # Higher logic model for synthesis
+            model=settings.GROQ_GENERATOR_MODEL,
             temperature=0.0
         )
         
@@ -283,11 +316,16 @@ def generator_node(state: AgentState) -> AgentState:
         if "insufficient_data" in final_answer:
             status = "insufficient_data"
             
+        prompt_tokens = state.get("prompt_tokens", 0) + response.usage.prompt_tokens
+        completion_tokens = state.get("completion_tokens", 0) + response.usage.completion_tokens
+            
         return {
             **state,
             "final_response": final_answer,
             "status": status,
-            "latency": round(latency, 4)
+            "latency": round(latency, 4),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens
         }
     except Exception as e:
         print(f"[ERROR] Generator Node failure: {e}")
@@ -297,6 +335,44 @@ def generator_node(state: AgentState) -> AgentState:
             "status": "error",
             "latency": round(latency, 4)
         }
+
+# =====================================================================
+# CONDITIONAL ROUTING LOGIC (LANGGRAPH EDGES)
+# =====================================================================
+
+def route_after_planner(state: AgentState) -> str:
+    """Routes from planner node to the first active tool or straight to generator."""
+    intent_type = state["intent"].get("intent", "UNSUPPORTED_QUERY")
+    if intent_type in ["SECURITY_VIOLATION", "UNSUPPORTED_QUERY"]:
+        return "generator_node"
+
+    plan = state["plan"]
+    if plan.get("needs_sql"):
+        return "sql_node"
+    elif plan.get("needs_rag"):
+        return "rag_node"
+    elif plan.get("needs_analytics"):
+        return "analytics_node"
+    else:
+        return "generator_node"
+
+def route_after_sql(state: AgentState) -> str:
+    """Routes after sql_node runs, checking RAG or Analytics next."""
+    plan = state["plan"]
+    if plan.get("needs_rag"):
+        return "rag_node"
+    elif plan.get("needs_analytics"):
+        return "analytics_node"
+    else:
+        return "generator_node"
+
+def route_after_rag(state: AgentState) -> str:
+    """Routes after rag_node runs, checking Analytics next."""
+    plan = state["plan"]
+    if plan.get("needs_analytics"):
+        return "analytics_node"
+    else:
+        return "generator_node"
 
 # =====================================================================
 # LANGGRAPH WORKFLOW SETUP
@@ -313,12 +389,40 @@ def create_agent_workflow():
     workflow.add_node("analytics_node", analytics_node)
     workflow.add_node("generator_node", generator_node)
     
-    # Establish links
+    # Establish edges (conditional edges skip unused nodes entirely)
     workflow.add_edge(START, "intent_node")
     workflow.add_edge("intent_node", "planner_node")
-    workflow.add_edge("planner_node", "sql_node")
-    workflow.add_edge("sql_node", "rag_node")
-    workflow.add_edge("rag_node", "analytics_node")
+    
+    workflow.add_conditional_edges(
+        "planner_node",
+        route_after_planner,
+        {
+            "sql_node": "sql_node",
+            "rag_node": "rag_node",
+            "analytics_node": "analytics_node",
+            "generator_node": "generator_node"
+        }
+    )
+    
+    workflow.add_conditional_edges(
+        "sql_node",
+        route_after_sql,
+        {
+            "rag_node": "rag_node",
+            "analytics_node": "analytics_node",
+            "generator_node": "generator_node"
+        }
+    )
+    
+    workflow.add_conditional_edges(
+        "rag_node",
+        route_after_rag,
+        {
+            "analytics_node": "analytics_node",
+            "generator_node": "generator_node"
+        }
+    )
+    
     workflow.add_edge("analytics_node", "generator_node")
     workflow.add_edge("generator_node", END)
     
@@ -343,12 +447,11 @@ class AgentExecutor:
         cached_res = cache_service.get_cached_query(query)
         if cached_res is not None:
             latency = time.time() - start_time
-            # Populate latency metrics and cached flag
             cached_res["start_time"] = start_time
             cached_res["latency"] = round(latency, 4)
             cached_res["cached"] = True
             
-            # Log cached run to observability
+            # Log cached run
             ObservabilityLogger.log_agent_run(
                 user_query=cached_res["query"],
                 detected_intent=cached_res["intent"].get("intent", "UNKNOWN"),
@@ -357,7 +460,9 @@ class AgentExecutor:
                 execution_status=cached_res.get("status", "success"),
                 retrieval_results=cached_res.get("rag_chunks"),
                 latency=cached_res["latency"],
-                cached=True
+                cached=True,
+                prompt_tokens=cached_res.get("prompt_tokens", 0),
+                completion_tokens=cached_res.get("completion_tokens", 0)
             )
             return cached_res
             
@@ -375,7 +480,13 @@ class AgentExecutor:
             "status": "success",
             "selected_tools": [],
             "start_time": start_time,
-            "latency": 0.0
+            "latency": 0.0,
+            # Init metrics
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "sql_latency": 0.0,
+            "retrieval_latency": 0.0,
+            "analytics_latency": 0.0
         }
         
         final_state = agent_app.invoke(initial_state)
@@ -394,7 +505,12 @@ class AgentExecutor:
             execution_status=final_state["status"],
             retrieval_results=final_state["rag_chunks"],
             latency=final_state["latency"],
-            cached=False
+            cached=False,
+            prompt_tokens=final_state.get("prompt_tokens", 0),
+            completion_tokens=final_state.get("completion_tokens", 0),
+            sql_latency=final_state.get("sql_latency", 0.0),
+            retrieval_latency=final_state.get("retrieval_latency", 0.0),
+            analytics_latency=final_state.get("analytics_latency", 0.0)
         )
         
         # 3. Store new response state in Redis Cache
