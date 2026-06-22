@@ -152,16 +152,60 @@ class SchemaIndexer:
 
     def retrieve_relevant_schemas(self, query: str, top_n: int = 4) -> str:
         """Retrieves and formats table schemas relevant to the query."""
-        query_vector = self.embedding_service.get_embedding(query)
+        import re
+        query_lower = query.lower()
         
-        # pgvector cosine similarity search
+        # 1. Run keyword heuristics to identify tables to force-include
+        keyword_map = {
+            "sales": ["sale", "sales", "sold", "revenue", "transaction", "transactions", "amount", "quantity", "quarter", "month", "year", "date", "payment", "buy", "bought", "purchase", "spend", "income"],
+            "products": ["product", "products", "item", "items", "category", "price", "cost", "margin", "profit"],
+            "customers": ["customer", "customers", "vip", "segment", "signup", "gender", "state", "city", "region", "who", "demographic", "people"],
+            "inventory": ["inventory", "stock", "warehouse", "reorder", "current_stock"],
+            "inventory_history": ["inventory history", "historical stock", "stock history", "stock level", "weekly stock"],
+            "suppliers": ["supplier", "suppliers", "lead time", "rating", "country"],
+            "returns": ["return", "returns", "refund", "refunds", "reason", "damaged", "defective", "did not fit"],
+            "marketing_campaigns": ["campaign", "campaigns", "discount", "discounts", "marketing", "promo", "offer", "percent"],
+            "warehouse_events": ["event", "events", "delay", "delays", "bottleneck", "bottlenecks", "incident", "disruption"],
+            "reviews": ["review", "reviews", "rating", "ratings", "feedback", "comment", "comments", "star", "sentiment"]
+        }
+        
+        force_tables = set()
+        for table, keywords in keyword_map.items():
+            for kw in keywords:
+                pattern = rf"\b{kw}\b"
+                if re.search(pattern, query_lower):
+                    force_tables.add(table)
+                    break
+
+        # 2. Get vector search results for the query
+        query_vector = self.embedding_service.get_embedding(query)
         results = (
             self.db.query(DocumentChunk, DocumentChunk.embedding.cosine_distance(query_vector).label('distance'))
             .filter(DocumentChunk.filename == "database_schema.json")
             .order_by('distance')
-            .limit(top_n)
             .all()
         )
         
-        relevant_schemas = [chunk.content for chunk, _ in results]
-        return "\n\n".join(relevant_schemas)
+        # 3. Build the final list of schemas, prioritizing force-included tables
+        selected_schemas = []
+        selected_table_names = set()
+        
+        # Add force-included tables first
+        for chunk, _ in results:
+            table_name = chunk.title.replace("Table: ", "").strip()
+            if table_name in force_tables:
+                selected_schemas.append(chunk.content)
+                selected_table_names.add(table_name)
+                
+        # Fill remaining slots with the closest remaining vector results
+        for chunk, _ in results:
+            table_name = chunk.title.replace("Table: ", "").strip()
+            if table_name not in selected_table_names:
+                if len(selected_schemas) < max(top_n, len(force_tables)):
+                    selected_schemas.append(chunk.content)
+                    selected_table_names.add(table_name)
+                    
+        # Limit to a maximum of 5 tables to keep context compact but complete
+        selected_schemas = selected_schemas[:5]
+        
+        return "\n\n".join(selected_schemas)

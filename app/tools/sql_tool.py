@@ -234,7 +234,10 @@ class SQLTool:
             "- Never perform DROP, DELETE, UPDATE, INSERT, ALTER, or CREATE operations.\n"
             "- Output ONLY the raw SQL query. Do not wrap in markdown (like ```sql) or include explanations.\n"
             "- Ignore parts of the user question that request general company policies, SOPs, rules, procedures, handbooks, or contracts. Those are handled by a separate document search system. Only write SELECT queries for structured database lookups (sales, transactions, products, inventory tables).\n"
-            "- In PostgreSQL, column aliases created in the SELECT list cannot be used inside mathematical or logical expressions in the ORDER BY clause (e.g. 'ORDER BY september_sales - february_sales' will fail with an UndefinedColumn error). Instead, repeat the full aggregate expressions (e.g. 'ORDER BY SUM(...) - SUM(...)') or use a CTE/subquery to wrap the select and then order the outer query."
+            "- In PostgreSQL, column aliases created in the SELECT list cannot be used inside mathematical or logical expressions in the ORDER BY clause (e.g. 'ORDER BY september_sales - february_sales' will fail with an UndefinedColumn error). Instead, repeat the full aggregate expressions (e.g. 'ORDER BY SUM(...) - SUM(...)') or use a CTE/subquery to wrap the select and then order the outer query.\n"
+            "- If you select both aggregated values (e.g., SUM(quantity)) and non-aggregated columns (e.g., product_name), you MUST include a GROUP BY clause containing all non-aggregated columns. Failure to do so will result in a database error.\n"
+            "- If you reference columns that belong to different tables (such as product_name from products and total_amount/quantity/customer_id from sales), you MUST perform an explicit JOIN (e.g., JOIN sales s ON p.product_id = s.product_id). Never query a column from a table unless it is explicitly listed under that table's columns in the schema.\n"
+            "- Database sales and history transaction data is strictly from the year 2025. Do NOT use CURRENT_DATE, CURRENT_YEAR, or date ranges outside 2025. Use date functions directly on table timestamp columns (e.g., EXTRACT(QUARTER FROM s.transaction_date) = 3 for Q3, or EXTRACT(MONTH FROM s.transaction_date) = 3 for March)."
         )
 
         # Retrieve Top 4 relevant tables dynamically from pgvector

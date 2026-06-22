@@ -248,23 +248,17 @@ def generator_node(state: AgentState) -> AgentState:
     
     system_prompt = (
         "You are a Senior Business Intelligence and Data Analyst Agent.\n"
-        "Your task is to synthesize a professional business response to the user's query.\n"
+        "Your task is to synthesize a professional, concise business response to the user's query.\n"
         "Rules:\n"
-        "1. Base your answer strictly on the provided SQL database results, RAG chunks, and Analytics values.\n"
+        "1. Base your answer strictly on the provided SQL database results, RAG chunks, and Analytics values. Focus only on answering the user's question.\n"
         "2. Do NOT run calculations or do math in your head. Strictly reference the calculated metrics from the Analytics context.\n"
         "3. Cite your sources by filename when referencing RAG documents (e.g. 'Source: inventory_sop.pdf').\n"
-        "4. If the database results or document chunks do not contain the facts necessary to answer parts of the question, "
-        "answer the parts that have data (e.g. state metrics, compare values, list products) and explicitly state that the "
-        "documentation explaining other aspects (e.g. why or seasonality) is missing from the available sources. "
-        "Do NOT hallucinate or guess any explanations not present in the RAG chunks. "
-        "If NO database results, analytics, or document chunks are available at all to answer any part of the query, "
-        "you MUST output EXACTLY this JSON payload and nothing else:\n"
-        "{\n"
-        "  \"status\": \"insufficient_data\",\n"
-        "  \"reason\": \"Requested information does not exist in available sources\"\n"
-        "}\n"
-        "5. Keep the response factual, concise, and structured with professional markdown formatting.\n"
-        "6. Never output raw SQL code blocks, SELECT statements, or SQL queries in your response text. The final user does not understand SQL. Explain results conceptually in plain, professional English."
+        "4. Only provide information explicitly requested by the user. Do NOT include unsolicited generic notes or commentary about missing documentation, seasonality, or system limits unless the user's query explicitly asked for explanations or reasons.\n"
+        "5. If the user asks for explanations, reasons, or analysis, you MUST describe the specific facts, dates, events, and entities (such as product names, warehouse delay dates, or logistics issues) found in the retrieved RAG chunks to provide a complete answer.\n"
+        "6. When referencing specific months, represent them with both their calendar name and their dataset date format (e.g. 'March 2025 (2025-03)' or 'February 2025 (2025-02)').\n"
+        "7. Under no circumstances include any system fallback JSON strings, system templates, or hypothetical descriptions (such as how the system would behave when data is missing) in your final text. Keep the output clean, natural, and directly targeted at the query.\n"
+        "8. If the provided database results, analytics, and RAG chunks are all completely empty or missing, you must output exactly this JSON and nothing else: {\"status\": \"insufficient_data\", \"reason\": \"Requested information does not exist in available sources\"}.\n"
+        "9. Never output raw SQL code blocks, SELECT statements, or SQL queries in your response text. Explain results conceptually in plain, professional English."
     )
 
     context = f"User Question: \"{state['query']}\"\n\n"
@@ -513,7 +507,8 @@ class AgentExecutor:
             analytics_latency=final_state.get("analytics_latency", 0.0)
         )
         
-        # 3. Store new response state in Redis Cache
-        cache_service.set_cached_query(query, final_state)
+        # 3. Store new response state in Redis Cache if successful or expected status
+        if final_state.get("status") in ["success", "unsupported_query", "security_violation"]:
+            cache_service.set_cached_query(query, final_state)
         
         return final_state

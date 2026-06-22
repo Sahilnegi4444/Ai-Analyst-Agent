@@ -91,6 +91,7 @@ const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
   // If no columns are suitable for plotting, default to table view
   const canPlot = !!(yAxisKey && xAxisKey)
   const isChronological = dateKeys.length > 0
+  const chartData = isChronological ? results : results.slice(0, 5)
 
   const [viewType, setViewType] = useState<'area' | 'bar' | 'table'>(
     canPlot ? (isChronological ? 'area' : 'bar') : 'table'
@@ -152,7 +153,7 @@ const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
       {viewType === 'area' && yAxisKey && xAxisKey && (
         <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer width="99%" height="100%">
-            <AreaChart data={results} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="chartColor" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4} />
@@ -174,7 +175,7 @@ const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
       {viewType === 'bar' && yAxisKey && xAxisKey && (
         <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer width="99%" height="100%">
-            <BarChart data={results} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey={xAxisKey} tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
               <YAxis tick={{ fill: 'var(--text)', fontSize: 11 }} stroke="var(--border)" />
@@ -198,7 +199,7 @@ const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
               </tr>
             </thead>
             <tbody>
-              {results.slice(0, 30).map((row, idx) => (
+              {results.slice(0, 10).map((row, idx) => (
                 <tr key={idx}>
                   {keys.map(key => (
                     <td key={key}>{String(row[key])}</td>
@@ -207,9 +208,9 @@ const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
               ))}
             </tbody>
           </table>
-          {results.length > 30 && (
+          {results.length > 10 && (
             <div style={{ padding: '8px 12px', fontSize: '11px', textAlign: 'center', backgroundColor: 'var(--code-bg)', borderTop: '1px solid var(--border)' }}>
-              Showing first 30 of {results.length} rows
+              Showing first 10 of {results.length} rows
             </div>
           )}
         </div>
