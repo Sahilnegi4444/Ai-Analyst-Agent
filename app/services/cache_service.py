@@ -169,10 +169,10 @@ class RedisCacheService:
             self.memory_cache[cache_key] = chunks
             logger.info(f"[RAG CACHE SET] Cached RAG chunks in-memory for key: {cache_key}")
 
-    def get_cached_compressed(self, query: str, chunk_index: int) -> Optional[str]:
+    def get_cached_compressed(self, query: str, chunk_id: int) -> Optional[str]:
         """Retrieves compressed text for a chunk."""
         h = self._hash_query(query)
-        cache_key = f"cache:compressed:{h}:{chunk_index}"
+        cache_key = f"cache:compressed:{h}:{chunk_id}"
         if self.enabled:
             try:
                 cached = self.client.get(cache_key)
@@ -186,10 +186,10 @@ class RedisCacheService:
                 return self.memory_cache[cache_key]
         return None
 
-    def set_cached_compressed(self, query: str, chunk_index: int, compressed_text: str, ttl: int = 43200) -> None:
+    def set_cached_compressed(self, query: str, chunk_id: int, compressed_text: str, ttl: int = 43200) -> None:
         """Caches compressed context block (TTL = 12h default)."""
         h = self._hash_query(query)
-        cache_key = f"cache:compressed:{h}:{chunk_index}"
+        cache_key = f"cache:compressed:{h}:{chunk_id}"
         if self.enabled:
             try:
                 self.client.set(cache_key, compressed_text, ex=ttl)

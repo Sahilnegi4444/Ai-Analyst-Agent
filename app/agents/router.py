@@ -41,16 +41,17 @@ class IntentRouter:
             "guideline", "guidelines", "agreement", "agreements", "deadline", "deadlines", 
             "delivery", "deliveries", "liability", "liabilities", "documentation"
         ]
-        sql_keywords = ["transaction", "transactions", "most sold", "how many", "count", "sum", "average", "total", "payment method"]
+        sql_keywords = ["sales","sale","revenue","profit","customer","customers","product","products","inventory","stock","orders","transaction","top","count","sum","average","avg","total"]
 
         has_hybrid = any(re.search(rf"\b{kw}\b", query_lower) for kw in hybrid_keywords)
         has_analytics = any(re.search(rf"\b{kw}\b", query_lower) for kw in analytics_keywords)
         has_rag = any(re.search(rf"\b{kw}\b", query_lower) for kw in rag_keywords)
         has_sql = any(re.search(rf"\b{kw}\b", query_lower) for kw in sql_keywords)
 
-        # Ambiguous/Overlap check: If hybrid keywords are found, or BOTH SQL and RAG elements appear,
+        # Ambiguous/Overlap check: If hybrid keywords are found, or multiple distinct intents are matched,
         # fallback to semantic LLM routing so it can parse grammar and relationships.
-        if has_hybrid or (has_sql and has_rag):
+        categories_matched = sum([has_sql, has_rag, has_analytics, has_hybrid])
+        if categories_matched > 1 or has_hybrid:
             return None
 
         # 2. Pure RAG query (contains RAG keywords, but no SQL keywords)

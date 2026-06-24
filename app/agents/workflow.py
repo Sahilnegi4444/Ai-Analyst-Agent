@@ -113,8 +113,24 @@ def rag_node(state: AgentState) -> AgentState:
     selected_tools.append("rag_tool")
     
     try:
+        # Extract entities from SQL results to enrich subsequent RAG search context
+        entities = []
+        if state.get("sql_results"):
+            for row in state["sql_results"][:5]:  # Process up to top 5 rows
+                for col in ["product_name", "category", "supplier_name", "segment", "name"]:
+                    if col in row and row[col]:
+                        val = str(row[col]).strip()
+                        if val and val not in entities:
+                            entities.append(val)
+        
+        # Enrich the RAG query with the SQL context
+        rag_query = state["query"]
+        if entities:
+            rag_query += f" (related context: {', '.join(entities)})"
+            print(f"[CONTEXT ENRICHMENT] Enriched RAG query: '{rag_query}'")
+            
         rag_tool = RAGTool(db)
-        res = rag_tool.retrieve_context(state["query"], top_k=3)
+        res = rag_tool.retrieve_context(rag_query, top_k=3)
         
         retrieval_latency = time.time() - rag_start
         prompt_tokens = state.get("prompt_tokens", 0) + res.get("prompt_tokens", 0)

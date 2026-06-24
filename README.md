@@ -74,6 +74,7 @@ graph TD
     SQLNode --> SQLTool
     SQLTool <-->|"Read & Validate EXPLAIN"| DB
     SQLNode --> ResultSummarizer
+    SQLNode -.->|"Two-Stage Context Sharing:<br/>Extract product/category keys"| RAGNode
     
     RAGNode --> HybridRetriever
     HybridRetriever <-->|"pgvector Cosine Search"| DB
@@ -178,8 +179,8 @@ graph TD
 
 #### How it Works:
 1. **Keyword Analysis**: The incoming query is normalized (lowercased) and scanned using regular expressions for lists of keywords (e.g., `"sop"`, `"policy"` for RAG; `"revenue"`, `"sales"` for SQL; `"growth"`, `"turnover"` for Analytics).
-2. **Heuristic Rule Match**: If the query is simple and contains keywords mapping purely to one tool, it bypassed the router model and maps directly to the active plan.
-3. **Keyword Overlap Safety**: If a query is complex and contains keywords from multiple tool classes (e.g. *"june sales compared to SOP regulations"*), or contains hybrid analysis terms (e.g. *"why"*, *"explain"*), the rule router yields `None` to trigger the semantic router.
+2. **Heuristic Rule Match**: If the query is simple and contains keywords mapping purely to one tool, it bypasses the router model and maps directly to the active plan.
+3. **Multi-Intent Overlap Safety**: If a query matches keywords from **more than one** category (e.g., contains both SQL and RAG keywords), or contains hybrid keywords (`why`, `explain`, `reason`, `impact`, `seasonality`, `difference`), the rule-based router immediately returns `None`. This prevents misrouting of multi-intent queries, forcing a fallback to the semantic LLM router.
 4. **Groq Semantic Routing Fallback**: Complex and overlapping queries fall back to the `Llama-3.1-8b-instant` router running in Groq's JSON mode, which evaluates semantic dependencies and assigns the proper tool combinations.
 
 #### Why We Used It:
@@ -283,15 +284,17 @@ graph TD
 ```
 
 #### How it Works:
-1. **Parallel Candidates Search**:
+1. **Two-Stage Context-Shared Enrichment**: If the active plan requires both SQL execution and RAG (e.g., hybrid queries), the system executes SQL first. Up to the first 5 result records are scanned to extract key entities (such as product names, category names, segments, or supplier names). These terms are appended to the RAG search query string as a `(related context: ...)` suffix to enrich subsequent vector search and BM25 retrievers.
+2. **Parallel Candidates Search**:
    - **Vector Similarity**: Generates query embeddings via `all-MiniLM-L6-v2` and pulls the Top 20 chunks from PostgreSQL using pgvector cosine distance.
-   - **BM25 Search**: tokenizes the query and calculates relevance scores against the local corpus BM25 index.
+   - **BM25 Search**: Tokenizes the query and calculates relevance scores against the local corpus BM25 index.
    - **Regex Code Boosting**: Evaluates exact regular expression matches for key codes (e.g. `C0001` or `P030`) and assigns a heavy boost to chunks containing matching identifiers.
-2. **Reciprocal Rank Fusion (RRF)**: Merges vector search and BM25 search ranks using the RRF algorithm, outputting a prioritized list of candidates.
-3. **Local Cross-Encoder Reranking**: Evaluates the Top 20 fused candidates using a locally loaded `cross-encoder/nli-deberta-v3-base` model. It computes similarity scores, sorts candidates by their entailment logit index (`score[1]`), and selects the Top 3 chunks.
-4. **Groq Context Compression**: Passes the Top 3 chunks to a fast `Llama-3.1-8b-instant` compression model. The model extracts only the query-relevant dates, statistics, and rules, condensing each long chunk into a 100-150 token summary.
+3. **Reciprocal Rank Fusion (RRF)**: Merges vector search and BM25 search ranks using the RRF algorithm, outputting a prioritized list of candidates.
+4. **Local Cross-Encoder Reranking**: Evaluates the Top 20 fused candidates using a locally loaded `cross-encoder/nli-deberta-v3-base` model. It computes similarity scores, sorts candidates by their entailment logit index (`score[1]`), and selects the Top 3 chunks.
+5. **Groq Context Compression**: Passes the Top 3 chunks to a fast `Llama-3.1-8b-instant` compression model. The model extracts only the query-relevant dates, statistics, and rules, condensing each long chunk into a 100-150 token summary.
 
 #### Why We Used It:
+- **Two-Stage Context Continuity**: Resolves context fragmentation in hybrid queries (e.g., referencing "these products") by passing SQL outcomes into the subsequent RAG search.
 - **100% Code-Identifier Recall**: Vector similarity search often misses exact alphanumeric codes (like product IDs). BM25 rank fusion and regex code boosting guarantee exact matches are retrieved.
 - **Offline Reranking Speed**: Running a local Deberta Cross-Encoder model avoids high-latency APIs (e.g., Cohere) and keeps data retrieval entirely local.
 - **Prompt Token Savings**: Compressing retrieved paragraphs down to relevant summaries reduces prompt sizing by **~70%**.

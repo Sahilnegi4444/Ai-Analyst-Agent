@@ -106,19 +106,19 @@ class HybridRetriever:
         for chunk in chunks:
             fname_lower = chunk.filename.lower()
             if "inventory_sop" in fname_lower:
-                if any(x in query_lower for x in ["sop", "inventory", "reorder", "stock", "cycle count"]):
+                if any(re.search(rf"\b{x}\b", query_lower) for x in ["sop", "inventory", "reorder", "stock", "cycle count"]):
                     filename_matches.add(chunk)
             elif "marketing_policy" in fname_lower:
-                if any(x in query_lower for x in ["marketing", "policy", "campaign", "discount"]):
+                if any(re.search(rf"\b{x}\b", query_lower) for x in ["marketing", "policy", "campaign", "campain", "discount", "rule", "rules"]):
                     filename_matches.add(chunk)
             elif "supplier_contract" in fname_lower:
-                if any(x in query_lower for x in ["supplier", "contract", "sla", "deadline", "penalty", "delivery"]):
+                if any(re.search(rf"\b{x}\b", query_lower) for x in ["supplier", "contract", "sla", "deadline", "penalty", "delivery"]):
                     filename_matches.add(chunk)
             elif "warehouse_manual" in fname_lower:
-                if any(x in query_lower for x in ["warehouse", "manual", "shipping", "handling", "procedures"]):
+                if any(re.search(rf"\b{x}\b", query_lower) for x in ["warehouse", "manual", "shipping", "handling", "procedures"]):
                     filename_matches.add(chunk)
             elif "executive_report" in fname_lower or "march" in fname_lower:
-                if any(x in query_lower for x in ["executive", "report", "march", "briefing", "performance"]):
+                if any(re.search(rf"\b{x}\b", query_lower) for x in ["executive", "report", "march", "briefing", "performance"]):
                     filename_matches.add(chunk)
 
         # 3. BM25 Search

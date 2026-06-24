@@ -48,7 +48,7 @@ class RAGTool:
 
             for chunk, confidence in similar_chunks:
                 # Check cache for this specific compressed chunk
-                cached_comp = cache_service.get_cached_compressed(query, chunk.chunk_index)
+                cached_comp = cache_service.get_cached_compressed(query, chunk.id)
                 if cached_comp:
                     compressed_text = cached_comp
                 else:
@@ -59,7 +59,7 @@ class RAGTool:
                     total_completion_tokens += comp_res.get("completion_tokens", 0)
                     
                     # Cache compressed content
-                    cache_service.set_cached_compressed(query, chunk.chunk_index, compressed_text)
+                    cache_service.set_cached_compressed(query, chunk.id, compressed_text)
 
                 results.append({
                     "filename": chunk.filename,

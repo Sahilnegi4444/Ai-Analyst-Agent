@@ -232,6 +232,8 @@ class SQLTool:
             "Constraints:\n"
             "- Only write SELECT statements.\n"
             "- Never perform DROP, DELETE, UPDATE, INSERT, ALTER, or CREATE operations.\n"
+            "- You must return EXACTLY ONE single SELECT statement. Do NOT output multiple SELECT statements or separate queries. Under no circumstances should you separate queries by newlines, whitespace, or semicolons.\n"
+            "- Do not try to answer parts of the question that ask for rules, guidelines, policies, contracts, or SOPs (such as 'campaign rules') by querying database tables. Those must be ignored here as they are handled by the document search (RAG) system. Focus the SELECT statement strictly on the structured numerical metrics (e.g. sales, quantity, product sales) requested in the query.\n"
             "- Output ONLY the raw SQL query. Do not wrap in markdown (like ```sql) or include explanations.\n"
             "- Ignore parts of the user question that request general company policies, SOPs, rules, procedures, handbooks, or contracts. Those are handled by a separate document search system. Only write SELECT queries for structured database lookups (sales, transactions, products, inventory tables).\n"
             "- In PostgreSQL, column aliases created in the SELECT list cannot be used inside mathematical or logical expressions in the ORDER BY clause (e.g. 'ORDER BY september_sales - february_sales' will fail with an UndefinedColumn error). Instead, repeat the full aggregate expressions (e.g. 'ORDER BY SUM(...) - SUM(...)') or use a CTE/subquery to wrap the select and then order the outer query.\n"
