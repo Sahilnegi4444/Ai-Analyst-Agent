@@ -31,6 +31,13 @@ class IntentRouter:
                 "explanation": "Rule-based match: Potential security boundary violation or database mutation query detected."
             }
 
+        # 1.5. PROGRAMMING & ROLEPLAY BYPASS: If the query contains programming, coding, or roleplay keywords,
+        # fallback to semantic LLM routing so it is correctly classified as UNSUPPORTED_QUERY.
+        programming_keywords = ["python", "code", "program", "function", "javascript", "script", "coding", "write a", "implement a", "class", "def ", "java", "c++", "programming"]
+        roleplay_keywords = ["assume", "act as", "you are a", "roleplay", "pretend"]
+        if any(re.search(rf"\b{kw}\b", query_lower) for kw in programming_keywords + roleplay_keywords):
+            return None
+
         # Scan for intent keywords
         hybrid_keywords = ["why", "explain", "reason", "impact", "seasonality", "difference"]
         analytics_keywords = ["turnover", "mom", "growth", "ratio", "calculations", "analysis", "analysing", "analyzing", "compare"]
