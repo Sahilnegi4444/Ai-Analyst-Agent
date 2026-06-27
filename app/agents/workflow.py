@@ -274,7 +274,10 @@ def generator_node(state: AgentState) -> AgentState:
         "6. When referencing specific months, represent them with both their calendar name and their dataset date format (e.g. 'March 2025 (2025-03)' or 'February 2025 (2025-02)').\n"
         "7. Under no circumstances include any system fallback JSON strings, system templates, or hypothetical descriptions (such as how the system would behave when data is missing) in your final text. Keep the output clean, natural, and directly targeted at the query.\n"
         "8. If the provided database results, analytics, and RAG chunks are all completely empty or missing, you must output exactly this JSON and nothing else: {\"status\": \"insufficient_data\", \"reason\": \"Requested information does not exist in available sources\"}.\n"
-        "9. Never output raw SQL code blocks, SELECT statements, or SQL queries in your response text. Explain results conceptually in plain, professional English."
+        "9. Never output raw SQL code blocks, SELECT statements, or SQL queries in your response text. Explain results conceptually in plain, professional English.\n"
+        "10. Write in simple, direct, and conversational business English. Avoid overly formal language, legalese, academic jargon, or verbose sentences. Explain facts and statistics simply so any manager or customer can understand instantly.\n"
+        "11. Never use technical, developer-facing, or database terms like 'RAG', 'chunks', 'RAG documents', 'RAG context', 'Analytics values', 'Analytics context', 'SQL database results', or 'database context' in your response. Under no circumstances say 'According to the Analytics values' or 'As outlined in the RAG chunks'. State facts and numbers directly (e.g. say 'The average delay is...' or 'According to the inventory SOP...').\n"
+        "12. Keep the response extremely concise. Do not write multiple paragraphs unless necessary to separate distinct datasets. Answer in a single, well-structured paragraph or a short bulleted list to minimize token consumption and maximize output quality."
     )
 
     context = f"User Question: \"{state['query']}\"\n\n"
