@@ -485,13 +485,20 @@ graph TD
 
 ## Installation & Setup
 
+You can run the application either **locally using a Python virtual environment** or **in isolated containers via Docker Compose**.
+
 ### Prerequisites
-- Python 3.10+
+- Python 3.10+ (if running locally without Docker)
 - PostgreSQL database (with the `pgvector` extension installed)
 - Redis server
+- Node.js (for frontend dashboard)
 - Groq API Key
 
-### 1. Set Up Environment
+---
+
+### Option A: Local Run (Virtual Environment)
+
+#### 1. Set Up Environment
 Clone the repository and create your virtual environment:
 ```bash
 python -m venv venv
@@ -500,34 +507,35 @@ source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-### 2. Configure Settings
+#### 2. Configure Settings
 Create a `.env` file in the root directory:
 ```ini
 DATABASE_URL=postgresql://<username>:<password>@<host>:5432/<database_name>
 REDIS_URL=redis://localhost:6379/0
 GROQ_API_KEY=your_groq_api_key_here
 EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+RERANK_MODEL_NAME=cross-encoder/nli-deberta-v3-base
 GROQ_ROUTER_MODEL=llama-3.1-8b-instant
 GROQ_SQL_MODEL=llama-3.1-8b-instant
 GROQ_GENERATOR_MODEL=llama-3.3-70b-versatile
-HF_HUB_OFFLINE=1
-TRANSFORMERS_OFFLINE=1
+HF_HUB_OFFLINE=0          # Set to 1 if using pre-downloaded local weights
+TRANSFORMERS_OFFLINE=0   # Set to 1 if using pre-downloaded local weights
 ```
 
-### 3. Ingest Data & Index Schemas
+#### 3. Ingest Data & Index Schemas
 Initialize database records, compile PDF document vector embeddings, and build the dynamic table schema index in `pgvector`:
 ```bash
 python scripts/ingest_all.py
 ```
 
-### 4. Run the Backend API Server
+#### 4. Run the Backend API Server
 Start the Uvicorn web server:
 ```bash
 python -m uvicorn app.main:app --reload
 ```
 View the interactive documentation at: `http://127.0.0.1:8000/docs`
 
-### 5. Launch the Frontend UI Dashboard
+#### 5. Launch the Frontend UI Dashboard
 Open a new terminal, navigate to the frontend directory, install dependencies, and start the development server:
 ```bash
 cd frontend
@@ -535,6 +543,33 @@ npm install
 npm run dev
 ```
 Open `http://localhost:5173/` in your browser to interact with the dashboard.
+
+---
+
+### Option B: Local Containers (Docker Compose)
+
+You can spin up the entire 3-container local stack (FastAPI Backend, PostgreSQL + pgvector, and Redis cache) in one command:
+
+#### 1. Boot all services
+```bash
+# On Windows (PowerShell)
+$env:GROQ_API_KEY="your-actual-groq-key"
+docker-compose up --build -d
+
+# On macOS/Linux
+export GROQ_API_KEY="your-actual-groq-key"
+docker-compose up --build -d
+```
+
+#### 2. Seed database & embed PDFs
+Execute the ingestion script inside the backend container to setup tables, index schemas, and vector-embed documents:
+```bash
+docker-compose exec web python scripts/ingest_all.py
+```
+
+#### 3. Verify
+- Backend API Docs: `http://localhost:8000/docs`
+- For full details on cloud production setups, refer to the [DEPLOYMENT.md](file:///c:/Projects/Ai%20Analyst/DEPLOYMENT.md) guide.
 
 ---
 

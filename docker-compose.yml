@@ -14,6 +14,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: ai_analyst_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     container_name: ai_analyst_backend
@@ -22,10 +29,12 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:lihasigen4444@db:5432/ai_analyst_db
-      - GROQ_API_KEY=your_groq_api_key_here
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
       - EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
     depends_on:
       - db
+      - redis
     volumes:
       - .:/workspace
 

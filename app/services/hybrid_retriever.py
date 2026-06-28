@@ -7,6 +7,7 @@ from sentence_transformers import CrossEncoder
 
 from app.models import DocumentChunk
 from app.services.embedding import EmbeddingService
+from app.config import settings
 
 class SimpleBM25:
     """
@@ -62,8 +63,8 @@ class HybridRetriever:
         self.embedding_service = EmbeddingService()
         try:
             # Load offline Deberta model from huggingface hub cache
-            self.cross_encoder = CrossEncoder("cross-encoder/nli-deberta-v3-base")
-            print("Loaded offline CrossEncoder model cross-encoder/nli-deberta-v3-base successfully.")
+            self.cross_encoder = CrossEncoder(settings.RERANK_MODEL_NAME)
+            print(f"Loaded offline CrossEncoder model {settings.RERANK_MODEL_NAME} successfully.")
         except Exception as e:
             print(f"[WARNING] Failed to load CrossEncoder offline: {e}. Running without reranking.")
             self.cross_encoder = None
