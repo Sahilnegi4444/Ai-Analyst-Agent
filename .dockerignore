@@ -1,0 +1,28 @@
+# Exclude local environment files
+venv/
+.env
+.env.*
+.git/
+.gitignore
+
+# Exclude python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Exclude developer test & diagnostic directories
+scratch/
+tests/
+app/evaluation/dataset.json
+app/evaluation/evaluation_report.json
+
+# Exclude log outputs and databases
+data/*.jsonl
+data/*.csv
+
+# Exclude documentation files
+README.md
+walkthrough.md
+task.md
+deployment_analysis.md

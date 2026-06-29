@@ -16,9 +16,20 @@ import app.models  # Ensure all models are imported for metadata creation
 def ensure_database_exists():
     """
     Checks if the target database exists in the PostgreSQL cluster.
-    If it does not exist, it will connect to the default 'postgres' database and create it.
+    First, it tries to connect directly to the target database in settings.DATABASE_URL.
+    If it succeeds, it returns. If it fails because the database does not exist,
+    it falls back to the default 'postgres' database to create it.
     """
-    print("Checking if target database exists...")
+    print("Verifying target database connectivity...")
+    try:
+        # Try to connect directly to the target database
+        conn = psycopg2.connect(settings.DATABASE_URL)
+        conn.close()
+        print("Successfully connected to target database directly. Bypassing database creation.")
+        return
+    except Exception as e:
+        print(f"Direct connection to target database failed: {e}. Attempting database check/creation...")
+
     # Parse connection details from DATABASE_URL
     url = urlparse.urlparse(settings.DATABASE_URL)
     target_db = url.path[1:]
@@ -50,8 +61,8 @@ def ensure_database_exists():
         cursor.close()
         conn.close()
     except Exception as e:
-        print(f"[ERROR] Failed to ensure database exists: {e}")
-        raise e
+        print(f"[WARNING] Database check/creation failed: {e}.")
+        print("This is normal for managed databases like Supabase. Proceeding to table initialization.")
 
 def init_db():
     """

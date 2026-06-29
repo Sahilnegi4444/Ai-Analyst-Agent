@@ -62,12 +62,15 @@ class ObservabilityLogger:
         if generated_sql:
             logger.info(f"[SQL GENERATED] {generated_sql}")
 
-        # 2. Append to structured log file
-        try:
-            # Ensure data folder exists
-            os.makedirs(os.path.dirname(cls.LOG_FILE), exist_ok=True)
-            
-            with open(cls.LOG_FILE, "a", encoding="utf-8") as f:
-                f.write(json.dumps(log_record) + "\n")
-        except Exception as e:
-            logger.error(f"Failed to write observability log: {e}")
+        # 2. Append to structured log file (development) or stream to stdout (production)
+        if os.getenv("ENVIRONMENT", "development") == "development":
+            try:
+                # Ensure data folder exists
+                os.makedirs(os.path.dirname(cls.LOG_FILE), exist_ok=True)
+                with open(cls.LOG_FILE, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_record) + "\n")
+            except Exception as e:
+                logger.error(f"Failed to write observability log: {e}")
+        else:
+            # Stream JSON-lines directly to stdout for production log aggregation
+            print(f"[OBSERVABILITY RUN LOG] {json.dumps(log_record)}")

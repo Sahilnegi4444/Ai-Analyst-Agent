@@ -136,9 +136,26 @@ This script will:
 
 ## 4. Production Deployment Guidelines
 
-### Database Selection
+### Database Selection & Supabase Setup
 - Avoid hosting PostgreSQL on a raw container in production.
-- Use a managed cloud database service like **AWS RDS PostgreSQL (15+)**, **Azure Database for PostgreSQL**, or **Supabase**, and ensure that the `vector` extension is enabled.
+- Use a managed cloud database service like **Supabase (PostgreSQL 15+ + pgvector)**:
+  1. **Enable Vector Extension**: On the Supabase Dashboard, navigate to the SQL Editor and execute:
+     ```sql
+     CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
+     ```
+  2. **Configure DATABASE_URL**: Retrieve your transaction-pooler connection string (usually port `6543`) from the Database Settings and set `DATABASE_URL` as an environment variable in Render or your production environment:
+     ```ini
+     DATABASE_URL=postgresql://postgres:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+     ```
+  3. **Auto-Initialization**: The startup initialization logic has been optimized for managed clouds. It automatically runs a direct connection verification check first, bypassing the `CREATE DATABASE` queries which are restricted on Supabase.
+
+### Upstash Redis Cache Setup
+- **Configure REDIS_URL**: Retrieve your secure Redis connection DSN from the Upstash console. Ensure it uses the secure `rediss://` scheme:
+  ```ini
+  REDIS_URL=rediss://default:[token]@your-instance.upstash.io:6379/0
+  ```
+- **SSL & Retry Strategy**: The application automatically enforces SSL/TLS handshakes for `rediss://` targets and initiates connection retries using an exponential backoff strategy (up to 3 times).
+- **Graceful Failure (Circuit Breaker)**: In case of database downtime or network timeouts, a runtime circuit breaker trips to disable Upstash calls and falls back dynamically to an in-memory cache to guarantee zero backend downtime.
 
 ### Packaging Hugging Face Models
 To prevent containers from attempting to download PyTorch and model weights at startup (which creates high latency and risks download failures), bake the model weights into the container image:

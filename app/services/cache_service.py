@@ -1,6 +1,8 @@
 import json
 import logging
 import redis
+from redis.retry import Retry
+from redis.backoff import ExponentialBackoff
 from typing import Optional, Dict, Any, List
 from app.config import settings
 
@@ -10,6 +12,7 @@ class RedisCacheService:
     """
     Service class wrapping Redis operations to cache user queries and agent states.
     Includes validation checks on startup to run in non-cached mode if Redis is down.
+    Supports secure SSL (rediss://), retry strategies, and circuit breakers.
     """
     _instance = None
 
@@ -26,12 +29,19 @@ class RedisCacheService:
         self.memory_cache = {}
         try:
             logger.info(f"Connecting to Redis at: {settings.REDIS_URL}...")
-            # Set decode_responses=True to return strings instead of bytes
+            
+            # Configure exponential backoff retries (3 attempts: 0.1s, 0.2s, 0.4s)
+            retry_strategy = Retry(ExponentialBackoff(cap=2.0, base=0.1), 3)
+            
+            # Set decode_responses=True to return strings instead of bytes.
+            # Support SSL (rediss://) natively and enforce timeout thresholds.
             self.client = redis.from_url(
                 settings.REDIS_URL, 
                 decode_responses=True,
-                socket_connect_timeout=2.0,  # Fail fast if unavailable
-                socket_timeout=2.0
+                socket_connect_timeout=3.0,
+                socket_timeout=3.0,
+                retry=retry_strategy,
+                retry_on_timeout=True
             )
             # Ping database cluster to verify active connectivity
             self.client.ping()
@@ -46,6 +56,18 @@ class RedisCacheService:
         except Exception as e:
             logger.error(f"[CACHE ERROR] Unexpected error initializing Redis cache: {e}. Falling back to in-memory caching.")
             self.memory_fallback = True
+
+    def _handle_redis_failure(self, error: Exception):
+        """
+        Circuit Breaker: Handles Redis connection errors at runtime by dynamically
+        tripping the cache flag and redirecting subsequent requests to the in-memory fallback.
+        """
+        logger.error(
+            f"[CACHE CIRCUIT BREAKER] Upstash Redis operation failed: {error}. "
+            "Temporarily disabling Redis client and falling back to local memory cache."
+        )
+        self.enabled = False
+        self.memory_fallback = True
 
     def _normalize_query(self, query: str) -> str:
         """Trims whitespace and lowercases the query string for uniform caching."""
@@ -65,9 +87,12 @@ class RedisCacheService:
                 if cached_data:
                     logger.info(f"[CACHE HIT] Serving cached response from Redis for key: {cache_key}")
                     return json.loads(cached_data)
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[CACHE ERROR] Failed to retrieve key from Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             if cache_key in self.memory_cache:
                 logger.info(f"[CACHE HIT] Serving cached response from in-memory cache for key: {cache_key}")
                 # Return a deep-copied JSON state to prevent mutations from altering the cache
@@ -94,9 +119,13 @@ class RedisCacheService:
                     ex=cache_ttl
                 )
                 logger.info(f"[CACHE SET] Response cached in Redis for key: {cache_key} with TTL: {cache_ttl}s")
+                return
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[CACHE ERROR] Failed to save key to Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             self.memory_cache[cache_key] = save_state
             logger.info(f"[CACHE SET] Response cached in-memory for key: {cache_key}")
 
@@ -115,9 +144,12 @@ class RedisCacheService:
                 if cached:
                     logger.info(f"[SQL CACHE HIT] Serving cached SQL query from Redis for key: {cache_key}")
                     return cached
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[SQL CACHE ERROR] Failed to retrieve SQL key from Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             if cache_key in self.memory_cache:
                 logger.info(f"[SQL CACHE HIT] Serving cached SQL query from in-memory for key: {cache_key}")
                 return self.memory_cache[cache_key]
@@ -131,9 +163,13 @@ class RedisCacheService:
             try:
                 self.client.set(cache_key, sql, ex=ttl)
                 logger.info(f"[SQL CACHE SET] Cached SQL in Redis for key: {cache_key} with TTL: {ttl}s")
+                return
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[SQL CACHE ERROR] Failed to save SQL to Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             self.memory_cache[cache_key] = sql
             logger.info(f"[SQL CACHE SET] Cached SQL in-memory for key: {cache_key}")
 
@@ -147,9 +183,12 @@ class RedisCacheService:
                 if cached:
                     logger.info(f"[RAG CACHE HIT] Serving cached retrieval results from Redis for key: {cache_key}")
                     return json.loads(cached)
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[RAG CACHE ERROR] Failed to retrieve RAG chunks from Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             if cache_key in self.memory_cache:
                 logger.info(f"[RAG CACHE HIT] Serving cached RAG chunks from in-memory for key: {cache_key}")
                 return json.loads(json.dumps(self.memory_cache[cache_key]))
@@ -163,9 +202,13 @@ class RedisCacheService:
             try:
                 self.client.set(cache_key, json.dumps(chunks), ex=ttl)
                 logger.info(f"[RAG CACHE SET] Cached RAG chunks in Redis for key: {cache_key} with TTL: {ttl}s")
+                return
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[RAG CACHE ERROR] Failed to save RAG chunks to Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             self.memory_cache[cache_key] = chunks
             logger.info(f"[RAG CACHE SET] Cached RAG chunks in-memory for key: {cache_key}")
 
@@ -179,9 +222,12 @@ class RedisCacheService:
                 if cached:
                     logger.info(f"[COMPRESSED CACHE HIT] Serving cached compressed text for key: {cache_key}")
                     return cached
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[COMPRESSED CACHE ERROR] Failed to retrieve from Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             if cache_key in self.memory_cache:
                 return self.memory_cache[cache_key]
         return None
@@ -193,7 +239,11 @@ class RedisCacheService:
         if self.enabled:
             try:
                 self.client.set(cache_key, compressed_text, ex=ttl)
+                return
+            except (redis.ConnectionError, redis.TimeoutError) as e:
+                self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[COMPRESSED CACHE ERROR] Failed to save to Redis: {e}")
-        elif self.memory_fallback:
+        
+        if self.memory_fallback:
             self.memory_cache[cache_key] = compressed_text
