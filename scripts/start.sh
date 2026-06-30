@@ -15,5 +15,17 @@ if [ "$AUTO_SEED" = "true" ]; then
 fi
 
 # Start FastAPI web server
-echo "[START] Starting FastAPI Uvicorn server..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+if [ "$ENVIRONMENT" = "production" ]; then
+    echo "[START] Starting production Gunicorn/Uvicorn server..."
+    # Launch Gunicorn with Uvicorn workers (4 workers default or configurable, timeout 120s)
+    exec gunicorn app.main:app \
+        -w "${WEB_CONCURRENCY:-4}" \
+        -k uvicorn.workers.UvicornWorker \
+        -b 0.0.0.0:8000 \
+        --timeout 120 \
+        --keep-alive 5 \
+        --log-level info
+else
+    echo "[START] Starting development Uvicorn server..."
+    exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+fi
