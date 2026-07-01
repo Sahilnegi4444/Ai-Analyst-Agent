@@ -69,7 +69,12 @@ def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db))
     doc_folder = "data/documents"
     os.makedirs(doc_folder, exist_ok=True)
     
-    file_path = os.path.join(doc_folder, file.filename)
+    # Extract only the base name to prevent path traversal/injection
+    safe_filename = os.path.basename(file.filename)
+    if not safe_filename or safe_filename in ('.', '..'):
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+        
+    file_path = os.path.join(doc_folder, safe_filename)
     try:
         # Save uploaded file to disk
         with open(file_path, "wb") as buffer:
@@ -79,18 +84,18 @@ def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db))
         ingestion = IngestionService(db)
         
         # Check current chunk count to compute delta
-        prev_count = db.query(DocumentChunk).filter(DocumentChunk.filename == file.filename).count()
+        prev_count = db.query(DocumentChunk).filter(DocumentChunk.filename == safe_filename).count()
         if prev_count > 0:
             # Delete old chunks to allow clean override
-            db.query(DocumentChunk).filter(DocumentChunk.filename == file.filename).delete()
+            db.query(DocumentChunk).filter(DocumentChunk.filename == safe_filename).delete()
             db.commit()
             
         ingestion.ingest_pdf_documents(doc_folder)
         
-        new_count = db.query(DocumentChunk).filter(DocumentChunk.filename == file.filename).count()
+        new_count = db.query(DocumentChunk).filter(DocumentChunk.filename == safe_filename).count()
         
         return DocumentUploadResponse(
-            filename=file.filename,
+            filename=safe_filename,
             chunks_count=new_count,
             status="success"
         )

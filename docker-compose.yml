@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: lihasigen4444
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lihasigen4444}
       POSTGRES_DB: ai_analyst_db
     ports:
       - "5432:5432"
