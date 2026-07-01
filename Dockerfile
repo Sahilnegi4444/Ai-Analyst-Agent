@@ -22,12 +22,6 @@ ENV PIP_NO_CACHE_DIR=1
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Pre-download SentenceTransformer and CrossEncoder models during build time
-ENV HF_HOME=/opt/huggingface_cache
-RUN python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; \
-SentenceTransformer('all-MiniLM-L6-v2'); \
-CrossEncoder('cross-encoder/ettin-reranker-17m-v1')"
-
 # =====================================================================
 # STAGE 2: Runner (Production)
 # =====================================================================
@@ -47,14 +41,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup -d /home/appuser -m appuser
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy preloaded models from builder stage to appuser's home directory
-COPY --from=builder /opt/huggingface_cache /home/appuser/.cache/huggingface
-RUN chown -R appuser:appgroup /home/appuser/.cache/huggingface
-
 # Set environment variables
-ENV HF_HOME=/home/appuser/.cache/huggingface
-ENV HF_HUB_OFFLINE=1
-ENV TRANSFORMERS_OFFLINE=1
 ENV PYTHONUNBUFFERED=1
 
 # Copy application files
