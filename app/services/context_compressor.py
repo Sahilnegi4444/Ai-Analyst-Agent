@@ -1,4 +1,4 @@
-from groq import Groq
+from app.providers.llm import GroqLLMProvider
 from app.config import settings
 
 class ContextCompressor:
@@ -7,7 +7,7 @@ class ContextCompressor:
     Leverages a fast, low-cost Llama-3.1-8b model via Groq API.
     """
     def __init__(self):
-        self.client = Groq(api_key=settings.GROQ_API_KEY)
+        self.client = GroqLLMProvider()
         self.model = settings.GROQ_SQL_MODEL # Llama-3.1-8b-instant
 
     def compress_chunk(self, query: str, chunk_text: str) -> dict:
@@ -28,7 +28,7 @@ class ContextCompressor:
         user_content = f"User Query: \"{query}\"\n\nDocument Chunk:\n{chunk_text}\n\nCompressed Text:"
 
         try:
-            response = self.client.chat.completions.create(
+            response = self.client.generate(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content}
