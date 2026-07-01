@@ -3,7 +3,7 @@ import math
 import numpy as np
 from typing import List, Tuple
 from sqlalchemy.orm import Session
-from app.providers.reranker import LocalRerankerProvider
+from sentence_transformers import CrossEncoder
 
 from app.models import DocumentChunk
 from app.services.embedding import EmbeddingService
@@ -61,7 +61,13 @@ class HybridRetriever:
     def __init__(self, db: Session):
         self.db = db
         self.embedding_service = EmbeddingService()
-        self.reranker_provider = LocalRerankerProvider()
+        try:
+            # Load offline Deberta model from huggingface hub cache
+            self.cross_encoder = CrossEncoder(settings.RERANK_MODEL_NAME)
+            print(f"Loaded offline CrossEncoder model {settings.RERANK_MODEL_NAME} successfully.")
+        except Exception as e:
+            print(f"[WARNING] Failed to load CrossEncoder offline: {e}. Running without reranking.")
+            self.cross_encoder = None
 
     def _tokenize(self, text: str) -> List[str]:
         # Regex tokenization
@@ -159,39 +165,38 @@ class HybridRetriever:
         fused_candidates = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)[:20]
         fused_chunks = [id_to_chunk[chunk_id] for chunk_id, _ in fused_candidates]
 
-        # 6. Reranking using the provider
-        # Only run if reranking is enabled and the model is loaded successfully
-        has_reranker = settings.ENABLE_RERANKER and self.reranker_provider.model is not None
-        if has_reranker and fused_chunks:
-            contents = [c.content for c in fused_chunks]
-            scores = self.reranker_provider.predict(query, contents)
+        # 6. Cross-Encoder Reranking
+        if self.cross_encoder and fused_chunks:
+            # Predict similarity scores
+            pairs = [[query, c.content] for c in fused_chunks]
+            scores = self.cross_encoder.predict(pairs)
             
-            # Pair them up with boosted relevance scores for sorting
+            # Pair them up with boosted entailment scores for sorting
             chunk_scores = []
             for chunk, score in zip(fused_chunks, scores):
-                boosted_score = score
+                entailment_score = float(score[1])
                 if chunk in exact_matches:
-                    boosted_score += 5.0
+                    entailment_score += 5.0
                 if chunk in filename_matches:
-                    boosted_score += 10.0
-                chunk_scores.append((chunk, boosted_score, score))
+                    entailment_score += 10.0
+                chunk_scores.append((chunk, entailment_score, score))
             
-            # Sort by the boosted relevance score descending
+            # Sort by the boosted entailment score descending
             scored_chunks = sorted(chunk_scores, key=lambda x: x[1], reverse=True)
             
             # Take Top K (Top 3)
             top_scored = scored_chunks[:top_k]
             
-            # Map logit score to normalized confidence in [0, 1] using sigmoid
+            # Map logit score to normalized confidence in [0, 1] using sigmoid on the entailment logit
             results = []
             for chunk, _, score in top_scored:
-                confidence = float(1.0 / (1.0 + np.exp(-score)))
+                confidence = float(1.0 / (1.0 + np.exp(-score[1])))
                 if chunk in exact_matches or chunk in filename_matches:
                     confidence = max(confidence, 0.95)
                 results.append((chunk, confidence))
             return results
         else:
-            # Fallback to pgvector cosine distance similarity if reranker is disabled or not loaded
+            # Fallback to pgvector cosine distance similarity if CrossEncoder not loaded
             results = []
             for chunk in fused_chunks[:top_k]:
                 vec_chunk = np.array(chunk.embedding)

@@ -1,7 +1,7 @@
 import re
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from app.providers.llm import GroqLLMProvider
+from groq import Groq
 from app.config import settings
 
 # =####################################################################
@@ -108,7 +108,7 @@ class SQLTool:
     """
     def __init__(self, db: Session):
         self.db = db
-        self.client = GroqLLMProvider()
+        self.client = Groq(api_key=settings.GROQ_API_KEY)
         self.model = settings.GROQ_SQL_MODEL
         self.prompt_tokens = 0
         self.completion_tokens = 0
@@ -254,7 +254,7 @@ class SQLTool:
 
         prompt += f"User Question: \"{question}\"\nPostgreSQL Query:"
 
-        response = self.client.generate(
+        response = self.client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}

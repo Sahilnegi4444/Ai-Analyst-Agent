@@ -1,6 +1,6 @@
 import json
 import re
-from app.providers.llm import GroqLLMProvider
+from groq import Groq
 from app.config import settings
 
 class IntentRouter:
@@ -9,7 +9,8 @@ class IntentRouter:
     document retrieval, hybrid, or analytics intents using the Groq API in JSON mode.
     """
     def __init__(self):
-        self.client = GroqLLMProvider()
+        # Initialize Groq client with environment key
+        self.client = Groq(api_key=settings.GROQ_API_KEY)
         self.model = settings.GROQ_ROUTER_MODEL
 
     def route_by_rules(self, query: str) -> dict:
@@ -151,7 +152,7 @@ User Query: "{query}"
 JSON response:"""
 
         try:
-            response = self.client.generate(
+            response = self.client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": system_instructions},
                     {"role": "user", "content": prompt}

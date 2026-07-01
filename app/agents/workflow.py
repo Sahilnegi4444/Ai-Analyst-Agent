@@ -2,7 +2,7 @@ import time
 import json
 from typing import TypedDict, List, Dict, Any, Optional
 from langgraph.graph import StateGraph, START, END
-from app.providers.llm import GroqLLMProvider
+from groq import Groq
 
 from app.config import settings
 from app.database import SessionLocal
@@ -259,7 +259,7 @@ def generator_node(state: AgentState) -> AgentState:
             }
 
     # Generate synthesis prompt
-    client = GroqLLMProvider()
+    client = Groq(api_key=settings.GROQ_API_KEY)
     
     system_prompt = (
         "You are a Senior Business Intelligence and Data Analyst Agent.\n"
@@ -312,7 +312,7 @@ def generator_node(state: AgentState) -> AgentState:
         context += f"--- Pandas Analytics Calculations Context ---\n{json.dumps(state['analytics_results'], indent=2)}\n\n"
 
     try:
-        response = client.generate(
+        response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": context}

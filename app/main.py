@@ -15,19 +15,7 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic: Pre-warm/preload embedding model singleton
-    print("Pre-warming local Embedding model Singleton at startup...")
-    from app.providers.embedding import LocalEmbeddingProvider
-    LocalEmbeddingProvider()
-    
-    # Pre-warm/preload reranker model if enabled
-    if settings.ENABLE_RERANKER:
-        print("Pre-warming local Reranker model Singleton at startup...")
-        from app.providers.reranker import LocalRerankerProvider
-        LocalRerankerProvider()
-    else:
-        print("Reranker is disabled (ENABLE_RERANKER=false). Skipping pre-warming.")
-        
+    # Startup logic
     yield
     # Shutdown logic (gracefully close connection pools)
     print("Shutting down backend server. Disposing database connections...")
