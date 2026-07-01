@@ -12,6 +12,8 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: ENVIRONMENT
+        value: production
       - key: EMBEDDING_MODEL_NAME
         value: all-MiniLM-L6-v2
       - key: GROQ_ROUTER_MODEL
