@@ -16,14 +16,11 @@ fi
 
 # Start FastAPI web server
 if [ "$ENVIRONMENT" = "production" ]; then
-    echo "[START] Starting production Gunicorn/Uvicorn server..."
-    # Launch Gunicorn with Uvicorn workers (4 workers default or configurable, timeout 120s)
-    exec gunicorn app.main:app \
-        -w "${WEB_CONCURRENCY:-4}" \
-        -k uvicorn.workers.UvicornWorker \
-        -b 0.0.0.0:8000 \
-        --timeout 120 \
-        --keep-alive 5 \
+    # Launch Uvicorn directly to avoid Gunicorn watchdog worker timeouts on slow shared CPU tiers
+    exec uvicorn app.main:app \
+        --host 0.0.0.0 \
+        --port 8000 \
+        --workers "${WEB_CONCURRENCY:-1}" \
         --log-level info
 else
     echo "[START] Starting development Uvicorn server..."
