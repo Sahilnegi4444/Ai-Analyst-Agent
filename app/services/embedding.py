@@ -1,4 +1,3 @@
-from sentence_transformers import SentenceTransformer
 from typing import List
 from app.config import settings
 
@@ -14,6 +13,7 @@ class EmbeddingService:
 
     def _init_model(self):
         print(f"Loading embedding model: {settings.EMBEDDING_MODEL_NAME}...")
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
         print("Embedding model loaded successfully.")
 

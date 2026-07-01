@@ -3,7 +3,6 @@ import math
 import numpy as np
 from typing import List, Tuple
 from sqlalchemy.orm import Session
-from sentence_transformers import CrossEncoder
 
 from app.models import DocumentChunk
 from app.services.embedding import EmbeddingService
@@ -65,6 +64,7 @@ class HybridRetriever:
         if settings.ENABLE_RERANKER:
             try:
                 # Load offline model from huggingface hub cache
+                from sentence_transformers import CrossEncoder
                 self.cross_encoder = CrossEncoder(settings.RERANK_MODEL_NAME)
                 print(f"Loaded offline CrossEncoder model {settings.RERANK_MODEL_NAME} successfully.")
             except Exception as e:
