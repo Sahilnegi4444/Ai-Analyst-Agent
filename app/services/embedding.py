@@ -1,36 +1,23 @@
 from typing import List
-from app.config import settings
+from app.providers.factory import get_embedding_provider
 
 class EmbeddingService:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        # Implement singleton pattern to avoid reloading model multiple times
+        # Implement singleton pattern to wrap active provider
         if not cls._instance:
             cls._instance = super(EmbeddingService, cls).__new__(cls, *args, **kwargs)
-            cls._instance._init_model()
+            cls._instance._init_provider()
         return cls._instance
 
-    def _init_model(self):
-        print(f"Loading embedding model: {settings.EMBEDDING_MODEL_NAME}...")
-        import torch
-        import gc
-        # Optimize PyTorch memory usage for CPU/memory-constrained environments
-        torch.set_num_threads(1)
-        torch.set_grad_enabled(False)
-        
-        from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME, device="cpu")
-        
-        gc.collect()
-        print("Embedding model loaded successfully.")
+    def _init_provider(self):
+        self.provider = get_embedding_provider()
 
     def get_embedding(self, text: str) -> List[float]:
         """Generate vector embedding for a single text chunk."""
-        embedding = self.model.encode(text, normalize_embeddings=True)
-        return embedding.tolist()
+        return self.provider.embed(text, task="retrieval.query")
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Generate vector embeddings for a batch of text chunks."""
-        embeddings = self.model.encode(texts, normalize_embeddings=True)
-        return embeddings.tolist()
+        return self.provider.embed_batch(texts, task="retrieval.document")

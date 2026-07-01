@@ -1,0 +1,2 @@
+# Development dependencies for local machine learning model execution
+sentence-transformers==5.5.1

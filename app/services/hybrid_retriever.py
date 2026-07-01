@@ -60,17 +60,12 @@ class HybridRetriever:
     def __init__(self, db: Session):
         self.db = db
         self.embedding_service = EmbeddingService()
-        self.cross_encoder = None
+        self.reranker = None
         if settings.ENABLE_RERANKER:
-            try:
-                # Load offline model from huggingface hub cache
-                from sentence_transformers import CrossEncoder
-                self.cross_encoder = CrossEncoder(settings.RERANK_MODEL_NAME)
-                print(f"Loaded offline CrossEncoder model {settings.RERANK_MODEL_NAME} successfully.")
-            except Exception as e:
-                print(f"[WARNING] Failed to load CrossEncoder offline: {e}. Running without reranking.")
+            from app.providers.factory import get_reranker_provider
+            self.reranker = get_reranker_provider()
         else:
-            print("CrossEncoder reranking is disabled via configuration.")
+            print("Reranker is disabled via configuration.")
 
     def _tokenize(self, text: str) -> List[str]:
         # Regex tokenization
@@ -168,44 +163,43 @@ class HybridRetriever:
         fused_candidates = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)[:20]
         fused_chunks = [id_to_chunk[chunk_id] for chunk_id, _ in fused_candidates]
 
-        # 6. Cross-Encoder Reranking
-        if self.cross_encoder and fused_chunks:
-            # Predict similarity scores
-            pairs = [[query, c.content] for c in fused_chunks]
-            scores = self.cross_encoder.predict(pairs)
+        # 6. Reranking using the active provider
+        if self.reranker and fused_chunks:
+            # Rerank candidates
+            doc_contents = [c.content for c in fused_chunks]
+            scores = self.reranker.rerank(query, doc_contents)
             
-            # Pair them up with boosted entailment scores for sorting
+            # Pair candidate chunks with their relevance scores and apply sorting boosts
             chunk_scores = []
             for chunk, score in zip(fused_chunks, scores):
-                entailment_score = float(score[1])
+                boosted_score = float(score)
                 if chunk in exact_matches:
-                    entailment_score += 5.0
+                    boosted_score += 5.0
                 if chunk in filename_matches:
-                    entailment_score += 10.0
-                chunk_scores.append((chunk, entailment_score, score))
+                    boosted_score += 10.0
+                chunk_scores.append((chunk, boosted_score, score))
             
-            # Sort by the boosted entailment score descending
+            # Sort by boosted score descending
             scored_chunks = sorted(chunk_scores, key=lambda x: x[1], reverse=True)
-            
-            # Take Top K (Top 3)
             top_scored = scored_chunks[:top_k]
             
-            # Map logit score to normalized confidence in [0, 1] using sigmoid on the entailment logit
+            # Retrieve final scores (which are already normalized in [0, 1] by the providers)
             results = []
             for chunk, _, score in top_scored:
-                confidence = float(1.0 / (1.0 + np.exp(-score[1])))
+                confidence = float(score)
                 if chunk in exact_matches or chunk in filename_matches:
                     confidence = max(confidence, 0.95)
                 results.append((chunk, confidence))
             return results
         else:
-            # Fallback to pgvector cosine distance similarity if CrossEncoder not loaded
+            # Fallback to pgvector cosine distance similarity if reranker is disabled
             results = []
             for chunk in fused_chunks[:top_k]:
                 vec_chunk = np.array(chunk.embedding)
                 vec_query = np.array(query_vector)
-                distance = 1.0 - (np.dot(vec_chunk, vec_query) / (np.linalg.norm(vec_chunk) * np.linalg.norm(vec_query)))
-                confidence = float(round(1.0 - distance, 4))
+                denom = np.linalg.norm(vec_chunk) * np.linalg.norm(vec_query)
+                similarity = np.dot(vec_chunk, vec_query) / denom if denom > 0 else 0.0
+                confidence = float(round(similarity, 4))
                 if chunk in exact_matches or chunk in filename_matches:
                     confidence = max(confidence, 0.95)
                 results.append((chunk, confidence))
