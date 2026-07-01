@@ -12,6 +12,7 @@ class Settings:
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     EMBEDDING_MODEL_NAME: str = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
     RERANK_MODEL_NAME: str = os.getenv("RERANK_MODEL_NAME", "cross-encoder/ettin-reranker-17m-v1")
+    ENABLE_RERANKER: bool = os.getenv("ENABLE_RERANKER", "false").lower() == "true"
     GROQ_ROUTER_MODEL: str = os.getenv("GROQ_ROUTER_MODEL", "llama-3.1-8b-instant")
     GROQ_SQL_MODEL: str = os.getenv("GROQ_SQL_MODEL", "llama-3.1-8b-instant")
     GROQ_GENERATOR_MODEL: str = os.getenv("GROQ_GENERATOR_MODEL", "llama-3.3-70b-versatile")

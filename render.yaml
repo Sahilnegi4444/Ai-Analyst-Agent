@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: ai-analyst-backend
+    env: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: EMBEDDING_MODEL_NAME
+        value: all-MiniLM-L6-v2
+      - key: GROQ_ROUTER_MODEL
+        value: llama-3.1-8b-instant
+      - key: GROQ_SQL_MODEL
+        value: llama-3.1-8b-instant
+      - key: GROQ_GENERATOR_MODEL
+        value: llama-3.3-70b-versatile
+      - key: HF_HUB_OFFLINE
+        value: "1"
+      - key: TRANSFORMERS_OFFLINE
+        value: "1"
+      - key: REDIS_CACHE_TTL
+        value: "3600"
+      - key: ENABLE_RERANKER
+        value: "false"

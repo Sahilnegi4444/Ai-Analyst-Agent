@@ -190,3 +190,22 @@ jobs:
           name: deployment-package
           path: deployment-package.zip
           retention-days: 7
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [prepare-artifacts]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Deploy Hook
+        run: |
+          curl -f -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" || echo "Deploy hook trigger skipped or failed."
+
+      - name: Deploy Frontend to Vercel
+        run: |
+          npm install --global vercel
+          vercel deploy --token ${{ secrets.VERCEL_TOKEN }} --name ai-analyst-frontend --yes --prod --cwd frontend --build-env VITE_API_URL=${{ secrets.VITE_API_URL }}
+

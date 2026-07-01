@@ -61,13 +61,16 @@ class HybridRetriever:
     def __init__(self, db: Session):
         self.db = db
         self.embedding_service = EmbeddingService()
-        try:
-            # Load offline Deberta model from huggingface hub cache
-            self.cross_encoder = CrossEncoder(settings.RERANK_MODEL_NAME)
-            print(f"Loaded offline CrossEncoder model {settings.RERANK_MODEL_NAME} successfully.")
-        except Exception as e:
-            print(f"[WARNING] Failed to load CrossEncoder offline: {e}. Running without reranking.")
-            self.cross_encoder = None
+        self.cross_encoder = None
+        if settings.ENABLE_RERANKER:
+            try:
+                # Load offline model from huggingface hub cache
+                self.cross_encoder = CrossEncoder(settings.RERANK_MODEL_NAME)
+                print(f"Loaded offline CrossEncoder model {settings.RERANK_MODEL_NAME} successfully.")
+            except Exception as e:
+                print(f"[WARNING] Failed to load CrossEncoder offline: {e}. Running without reranking.")
+        else:
+            print("CrossEncoder reranking is disabled via configuration.")
 
     def _tokenize(self, text: str) -> List[str]:
         # Regex tokenization

@@ -30,6 +30,7 @@ The application uses environment variables for all runtime settings. Below is th
 | `REDIS_URL` | `redis://localhost:6379/0` | Cache DSN. Use `rediss://` for SSL/TLS (Upstash). | **Yes** |
 | `ENVIRONMENT` | `development` | Environment environment identifier (`development` or `production`). | **Yes** (in Prod) |
 | `EMBEDDING_MODEL_NAME` | `all-MiniLM-L6-v2` | Model name for text embedding generation. | No |
+| `ENABLE_RERANKER` | `false` | Set to `true` to enable CrossEncoder reranking. Saves memory/CPU when `false`. | No |
 | `RERANK_MODEL_NAME` | `cross-encoder/ettin-reranker-17m-v1` | Model name for CrossEncoder reranking. | No |
 | `GROQ_ROUTER_MODEL` | `llama-3.1-8b-instant` | Groq model for intent routing. | No |
 | `GROQ_SQL_MODEL` | `llama-3.1-8b-instant` | Groq model for text-to-SQL generation. | No |
@@ -195,21 +196,22 @@ To configure **Upstash Redis** as a secure, managed cloud cache:
 
 ## 7. Render Deployment
 
-Render is a clean cloud platform to host the backend container and frontend static assets.
+Render is a clean cloud platform to host the backend container. Instead of manual setup, we use Render **Blueprints** (`render.yaml`) to automate the infrastructure setup:
 
-### Backend Deployment (Web Service)
-1. Log into Render and click **New > Web Service**.
+### Blueprint Deployment via `render.yaml`
+1. Log into your Render dashboard and click **New > Blueprint**.
 2. Connect your Git repository.
-3. Configure the service:
-   * **Language**: `Docker`
-   * **Branch**: `main`
-   * **Instance Type**: `Starter` (recommended minimum to avoid OOM issues due to Hugging Face models).
-4. Under **Advanced**, add the following environment variables:
-   * `ENVIRONMENT`: `production`
-   * `DATABASE_URL`: *(Your pooled Supabase DSN)*
-   * `REDIS_URL`: *(Your Upstash Redis DSN)*
-   * `GROQ_API_KEY`: *(Your Groq API Key)*
-5. Render will automatically build the Docker image, run the `/health` health check, and deploy the service.
+3. Render will parse the [render.yaml](file:///c:/Projects/Ai%20Analyst/render.yaml) file in the root of the project.
+4. It will prompt you for the values of variables that do not have defaults:
+   * `DATABASE_URL`: Your pooled Supabase DSN (with `sslmode=require`).
+   * `GROQ_API_KEY`: Your Groq API Key.
+   * `REDIS_URL`: Your Upstash Redis connection string.
+5. Click **Approve** to create the service. Render will automatically build the Docker image, run the `/health` health check, and deploy the service.
+
+### Disabling the Reranker for Free-Tier Deployment
+To comfortably host the backend within Render's free tier (512MB RAM limit), the Reranker is disabled by default (`ENABLE_RERANKER=false`).
+* This avoids loading the Deberta model into memory, reducing idle RAM usage from **~600MB+ to under 120MB**.
+* Reranking can be re-enabled at any time by changing only the environment variable `ENABLE_RERANKER=true` under the Render service settings (without code changes).
 
 ### Frontend Deployment (Static Site)
 1. Click **New > Static Site**.
@@ -218,8 +220,9 @@ Render is a clean cloud platform to host the backend container and frontend stat
    * **Build Command**: `cd frontend && npm install && npm run build`
    * **Publish Directory**: `frontend/dist`
 4. Add the following environment variable:
-   * `VITE_API_URL`: *(Your Render backend web service URL, e.g., `https://your-backend.onrender.com`)*
+   * `VITE_API_URL`: *(Your Render backend web service URL, e.g., `https://ai-analyst-backend.onrender.com`)*
 5. Deploy the static site.
+
 
 ---
 

@@ -514,12 +514,13 @@ DATABASE_URL=postgresql://<username>:<password>@<host>:5432/<database_name>
 REDIS_URL=redis://localhost:6379/0
 GROQ_API_KEY=your_groq_api_key_here
 EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+ENABLE_RERANKER=false     # Set to true to enable CrossEncoder reranking
 RERANK_MODEL_NAME=cross-encoder/ettin-reranker-17m-v1
 GROQ_ROUTER_MODEL=llama-3.1-8b-instant
 GROQ_SQL_MODEL=llama-3.1-8b-instant
 GROQ_GENERATOR_MODEL=llama-3.3-70b-versatile
-HF_HUB_OFFLINE=0          # Set to 1 if using pre-downloaded local weights
-TRANSFORMERS_OFFLINE=0   # Set to 1 if using pre-downloaded local weights
+HF_HUB_OFFLINE=1          # Set to 1 in production (uses Docker cached model weights)
+TRANSFORMERS_OFFLINE=1   # Set to 1 in production (uses Docker cached model weights)
 ```
 
 #### 3. Ingest Data & Index Schemas
