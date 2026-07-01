@@ -5,11 +5,8 @@ import {
   BookOpen,
   BarChart3,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
   Menu,
   X,
-  Terminal,
   Table2,
   Layers
 } from 'lucide-react'
@@ -44,7 +41,7 @@ interface Message {
   text: string
   intent?: string
   sql_generated?: string | null
-  sql_results?: any[] | null
+  sql_results?: Record<string, unknown>[] | null
   sources?: Source[] | null
   latency_seconds?: number
   cached?: boolean
@@ -54,7 +51,7 @@ interface Message {
 // =====================================================================
 // SQL RESULTS WIDGET COMPONENT
 // =====================================================================
-const SqlResultsWidget: React.FC<{ results: any[] }> = ({ results }) => {
+const SqlResultsWidget: React.FC<{ results: Record<string, unknown>[] }> = ({ results }) => {
   // Analyze the data structure
   const firstRow = results && results.length > 0 ? results[0] : null
   const keys = firstRow ? Object.keys(firstRow) : []
@@ -270,7 +267,6 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [apiOnline, setApiOnline] = useState<'checking' | 'online' | 'offline'>('checking')
-  const [expandedSql, setExpandedSql] = useState<{ [key: string]: boolean }>({})
   const scrollerRef = useRef<HTMLDivElement>(null)
 
   // Verify Backend Connectivity on Startup
@@ -334,24 +330,17 @@ function App() {
       }
 
       setMessages(prev => [...prev, agentMsg])
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
       const errorMsg: Message = {
         id: agentMessageId,
         sender: 'agent',
-        text: `Error processing query: ${err.message || err}. Make sure the FastAPI backend is running on port 8000.`
+        text: `Error processing query: ${errorMessage}. Make sure the FastAPI backend is running on port 8000.`
       }
       setMessages(prev => [...prev, errorMsg])
     } finally {
       setLoading(false)
     }
-  }
-
-  // Toggle Accordion Drawer for SQL query
-  const toggleSql = (msgId: string) => {
-    setExpandedSql(prev => ({
-      ...prev,
-      [msgId]: !prev[msgId]
-    }))
   }
 
   // Quick template trigger

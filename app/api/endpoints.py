@@ -2,7 +2,6 @@ import os
 import shutil
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
 from app.schemas.chat import ChatRequest, ChatResponse, SourceAttribution

@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import List, Optional
 
 # Configure standard console logger
 logging.basicConfig(

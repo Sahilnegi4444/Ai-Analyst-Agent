@@ -5,13 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from sqlalchemy import text
 
-# Load environmental configs from dotenv
-load_dotenv()
-
 from app.api.endpoints import router as api_router
 from app.config import settings
 from app.database import engine
 from app.services.cache_service import RedisCacheService
+
+# Load environmental configs from dotenv
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

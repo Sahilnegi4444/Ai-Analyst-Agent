@@ -30,7 +30,7 @@ The application uses environment variables for all runtime settings. Below is th
 | `REDIS_URL` | `redis://localhost:6379/0` | Cache DSN. Use `rediss://` for SSL/TLS (Upstash). | **Yes** |
 | `ENVIRONMENT` | `development` | Environment environment identifier (`development` or `production`). | **Yes** (in Prod) |
 | `EMBEDDING_MODEL_NAME` | `all-MiniLM-L6-v2` | Model name for text embedding generation. | No |
-| `RERANK_MODEL_NAME` | `cross-encoder/nli-deberta-v3-base` | Model name for CrossEncoder reranking. | No |
+| `RERANK_MODEL_NAME` | `cross-encoder/ettin-reranker-17m-v1` | Model name for CrossEncoder reranking. | No |
 | `GROQ_ROUTER_MODEL` | `llama-3.1-8b-instant` | Groq model for intent routing. | No |
 | `GROQ_SQL_MODEL` | `llama-3.1-8b-instant` | Groq model for text-to-SQL generation. | No |
 | `GROQ_GENERATOR_MODEL` | `llama-3.3-70b-versatile` | Groq model for final business response synthesis. | No |

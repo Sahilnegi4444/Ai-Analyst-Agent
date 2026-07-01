@@ -1,4 +1,3 @@
-import json
 from sqlalchemy.orm import Session
 from app.models import DocumentChunk
 from app.services.embedding import EmbeddingService

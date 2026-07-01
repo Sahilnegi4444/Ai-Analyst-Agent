@@ -26,7 +26,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 ENV HF_HOME=/opt/huggingface_cache
 RUN python -c "from sentence_transformers import SentenceTransformer, CrossEncoder; \
 SentenceTransformer('all-MiniLM-L6-v2'); \
-CrossEncoder('cross-encoder/nli-deberta-v3-base')"
+CrossEncoder('cross-encoder/ettin-reranker-17m-v1')"
 
 # =====================================================================
 # STAGE 2: Runner (Production)

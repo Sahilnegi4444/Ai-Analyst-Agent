@@ -1,7 +1,7 @@
 import re
 import math
 import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple
 from sqlalchemy.orm import Session
 from sentence_transformers import CrossEncoder
 
@@ -21,7 +21,7 @@ class SimpleBM25:
         self.avg_doc_len = sum(len(tokens) for _, tokens in corpus) / self.corpus_size if self.corpus_size > 0 else 0
         self.doc_freqs = {}
         self.doc_lens = {}
-        self.df = Counter_local = {}
+        self.df = {}
         
         # Calculate term frequencies and document frequencies
         for doc_id, tokens in corpus:

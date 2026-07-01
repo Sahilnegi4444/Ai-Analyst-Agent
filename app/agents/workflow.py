@@ -1,7 +1,6 @@
 import time
 import json
-import re
-from typing import TypedDict, List, Dict, Any, Optional, Union
+from typing import TypedDict, List, Dict, Any, Optional
 from langgraph.graph import StateGraph, START, END
 from groq import Groq
 
@@ -307,7 +306,7 @@ def generator_node(state: AgentState) -> AgentState:
                 f"Similarity: {chunk['confidence'] * 100:.2f}%\n"
                 f"Content: {chunk['content']}"
             )
-        context += f"--- Document RAG Context ---\n" + "\n\n".join(formatted_rag) + "\n\n"
+        context += "--- Document RAG Context ---\n" + "\n\n".join(formatted_rag) + "\n\n"
         
     if state["analytics_results"]:
         context += f"--- Pandas Analytics Calculations Context ---\n{json.dumps(state['analytics_results'], indent=2)}\n\n"

@@ -2,7 +2,8 @@ import os
 import sys
 import json
 import time
-from typing import List, Dict, Any
+from typing import List
+import re
 
 # Add workspace root to python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -153,8 +154,6 @@ class Evaluator:
             json.dump(report, f, indent=2)
             
         return report
-
-import re
 
 if __name__ == '__main__':
     evaluator = Evaluator()

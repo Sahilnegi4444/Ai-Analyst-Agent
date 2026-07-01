@@ -264,7 +264,7 @@ graph TD
     ExactMatch["Regex Code Identifier Scan<br/>(Check C0001, P001, S01...)"]:::process
     
     RRFFusion["Reciprocal Rank Fusion (RRF)<br/>(Fuses top 20 candidates)"]:::process
-    Reranker["Local NLI Cross-Encoder Reranker<br/>(cross-encoder/nli-deberta-v3-base)"]:::process
+    Reranker["Local Ettin Cross-Encoder Reranker<br/>(cross-encoder/ettin-reranker-17m-v1)"]:::process
     Compressor["Context Compressor Node<br/>(Llama-3.1-8b-instant to 100-150 tokens)"]:::process
     Generator["LLM Response Generator"]:::finish
 
@@ -290,13 +290,13 @@ graph TD
    - **BM25 Search**: Tokenizes the query and calculates relevance scores against the local corpus BM25 index.
    - **Regex Code Boosting**: Evaluates exact regular expression matches for key codes (e.g. `C0001` or `P030`) and assigns a heavy boost to chunks containing matching identifiers.
 3. **Reciprocal Rank Fusion (RRF)**: Merges vector search and BM25 search ranks using the RRF algorithm, outputting a prioritized list of candidates.
-4. **Local Cross-Encoder Reranking**: Evaluates the Top 20 fused candidates using a locally loaded `cross-encoder/nli-deberta-v3-base` model. It computes similarity scores, sorts candidates by their entailment logit index (`score[1]`), and selects the Top 3 chunks.
+4. **Local Cross-Encoder Reranking**: Evaluates the Top 20 fused candidates using a locally loaded `cross-encoder/ettin-reranker-17m-v1` model. It computes similarity scores, sorts candidates, and selects the Top 3 chunks.
 5. **Groq Context Compression**: Passes the Top 3 chunks to a fast `Llama-3.1-8b-instant` compression model. The model extracts only the query-relevant dates, statistics, and rules, condensing each long chunk into a 100-150 token summary.
 
 #### Why We Used It:
 - **Two-Stage Context Continuity**: Resolves context fragmentation in hybrid queries (e.g., referencing "these products") by passing SQL outcomes into the subsequent RAG search.
 - **100% Code-Identifier Recall**: Vector similarity search often misses exact alphanumeric codes (like product IDs). BM25 rank fusion and regex code boosting guarantee exact matches are retrieved.
-- **Offline Reranking Speed**: Running a local Deberta Cross-Encoder model avoids high-latency APIs (e.g., Cohere) and keeps data retrieval entirely local.
+- **Offline Reranking Speed**: Running a local Ettin-17M Cross-Encoder model avoids high-latency APIs (e.g., Cohere) and keeps data retrieval entirely local.
 - **Prompt Token Savings**: Compressing retrieved paragraphs down to relevant summaries reduces prompt sizing by **~70%**.
 - **Code Reference**: See [hybrid_retriever.py](file:///c:/Projects/Ai%20Analyst/app/services/hybrid_retriever.py) and [context_compressor.py](file:///c:/Projects/Ai%20Analyst/app/services/context_compressor.py).
 
@@ -514,7 +514,7 @@ DATABASE_URL=postgresql://<username>:<password>@<host>:5432/<database_name>
 REDIS_URL=redis://localhost:6379/0
 GROQ_API_KEY=your_groq_api_key_here
 EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
-RERANK_MODEL_NAME=cross-encoder/nli-deberta-v3-base
+RERANK_MODEL_NAME=cross-encoder/ettin-reranker-17m-v1
 GROQ_ROUTER_MODEL=llama-3.1-8b-instant
 GROQ_SQL_MODEL=llama-3.1-8b-instant
 GROQ_GENERATOR_MODEL=llama-3.3-70b-versatile

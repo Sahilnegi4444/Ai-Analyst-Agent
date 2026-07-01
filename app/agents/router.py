@@ -1,4 +1,3 @@
-import os
 import json
 import re
 from groq import Groq
@@ -97,7 +96,6 @@ class IntentRouter:
         Returns:
             dict: Structured classification containing 'intent', 'needs_sql', 'needs_rag', and 'explanation'.
         """
-        import re
         
         # 1. Run rule-based router first
         rule_res = self.route_by_rules(query)
