@@ -1,0 +1,6 @@
+campaign_id,campaign_name,start_date,end_date,discount_percent,target_category
+MC001,New Year Clearance,2025-01-01,2025-01-15,0.15,Apparel
+MC002,Spring Renewal,2025-03-10,2025-03-25,0.1,Home & Kitchen
+MC003,June Summer Savings,2025-06-01,2025-06-30,0.2,All
+MC004,Back to School,2025-08-15,2025-09-05,0.15,Electronics
+MC005,December Holiday Extravaganza,2025-12-05,2025-12-25,0.25,All

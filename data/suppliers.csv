@@ -1,0 +1,11 @@
+supplier_id,supplier_name,lead_time_days,country,rating
+S01,"Rodriguez, Figueroa and Sanchez Ltd",9,USA,4.19
+S02,Doyle Ltd Ltd,6,China,4.0
+S03,"Mcclain, Miller and Henderson Ltd",13,Vietnam,3.71
+S04,Davis and Sons Ltd,10,Mexico,4.48
+S05,"Guzman, Hoffman and Baldwin Ltd",7,Germany,3.58
+S06,"Gardner, Robinson and Lawrence Ltd",9,India,4.58
+S07,Blake and Sons Ltd,12,Japan,4.91
+S08,"Henderson, Ramirez and Lewis Ltd",5,Canada,3.5
+S09,Garcia-James Ltd,9,UK,4.99
+S10,Abbott-Munoz Ltd,13,Brazil,4.43

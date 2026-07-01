@@ -110,5 +110,8 @@ venv.bak/
 Thumbs.db
 
 # Application Specific
-data/
+data/observability_runs.jsonl
+data/evaluation_report.json
+data/*.db
+data/*.sqlite
 scratch/

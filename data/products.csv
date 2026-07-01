@@ -1,0 +1,101 @@
+product_id,product_name,category,price,cost,supplier_id
+P001,Product A,Electronics,112.89,69.87,S06
+P002,Accept Mouse,Electronics,106.0,49.06,S09
+P003,Step T-Shirt,Apparel,65.81,45.06,S03
+P004,Reflect Yoga Mat,Sports,316.5,132.37,S03
+P005,City Dress,Apparel,38.03,25.46,S05
+P006,Special Golf Balls,Sports,75.19,36.94,S07
+P007,Choose Toaster,Home & Kitchen,233.2,128.27,S05
+P008,Officer Hat,Apparel,14.63,7.71,S08
+P009,Star Lipstick,Beauty,177.65,80.22,S05
+P010,True Monitor,Electronics,264.25,134.09,S07
+P011,Sell Smartwatch,Electronics,413.83,189.48,S06
+P012,Cost Coffee Maker,Home & Kitchen,323.48,149.18,S10
+P013,Political Air Fryer,Home & Kitchen,67.71,30.88,S02
+P014,Without Serum,Beauty,142.42,77.86,S03
+P015,Dog Water Bottle,Sports,22.07,14.11,S04
+P016,Subject Sweater,Apparel,54.73,31.23,S05
+P017,Eat Pan,Home & Kitchen,24.84,16.59,S09
+P018,Heavy Mug,Home & Kitchen,66.79,39.47,S06
+P019,Charge Backpack,Sports,322.14,195.48,S01
+P020,Of Mascara,Beauty,73.97,44.4,S03
+P021,Too Water Bottle,Sports,133.8,71.56,S07
+P022,Leg Scarf,Apparel,95.21,57.77,S08
+P023,New Foundation,Beauty,102.13,42.99,S07
+P024,Position Socks,Apparel,533.86,351.26,S05
+P025,Modern Socks,Apparel,62.68,39.7,S10
+P026,Body Running Shoes,Sports,158.06,74.85,S08
+P027,House Mouse,Electronics,91.73,57.83,S09
+P028,She Bicycle,Sports,19.46,7.86,S07
+P029,Wall Camera,Electronics,110.8,51.54,S09
+P030,Daughter Lipstick,Beauty,261.77,109.82,S01
+P031,Have Sneakers,Apparel,25.6,16.23,S09
+P032,Suggest Jacket,Apparel,20.82,13.05,S03
+P033,Western Sneakers,Apparel,35.02,22.56,S06
+P034,Piece Lamp,Home & Kitchen,226.84,91.04,S08
+P035,Range Sneakers,Apparel,203.1,111.78,S03
+P036,It Coffee Maker,Home & Kitchen,134.87,82.47,S04
+P037,First Headphones,Electronics,104.73,46.77,S07
+P038,Memory Charger,Electronics,338.83,201.58,S07
+P039,Yes Speaker,Electronics,228.31,97.08,S04
+P040,Close Sweater,Apparel,260.65,118.44,S09
+P041,Item Shampoo,Beauty,261.71,142.04,S03
+P042,Never Running Shoes,Sports,164.38,97.98,S08
+P043,Red Hat,Apparel,101.88,45.21,S08
+P044,Force Mug,Home & Kitchen,310.01,141.23,S04
+P045,To Serum,Beauty,400.57,184.8,S07
+P046,Sing Belt,Apparel,13.61,6.42,S04
+P047,Moment T-Shirt,Apparel,17.94,8.4,S01
+P048,Exactly Knife Set,Home & Kitchen,488.19,253.15,S01
+P049,Itself Tablet,Electronics,58.69,34.99,S01
+P050,Factor Camera,Electronics,319.97,170.04,S02
+P051,Require Headphones,Electronics,83.85,53.06,S06
+P052,Here Pan,Home & Kitchen,29.02,17.87,S10
+P053,Full Headphones,Electronics,22.58,9.89,S05
+P054,Along Headphones,Electronics,35.53,14.73,S02
+P055,Look Hat,Apparel,53.13,35.25,S08
+P056,Return Smartwatch,Electronics,110.57,46.88,S09
+P057,City Laptop,Electronics,191.35,85.06,S07
+P058,Watch Bicycle,Sports,654.64,266.2,S09
+P059,Nature Camera,Electronics,97.38,57.31,S04
+P060,Else Pan,Home & Kitchen,119.53,68.7,S07
+P061,Board Hat,Apparel,120.66,83.99,S05
+P062,Son Air Fryer,Home & Kitchen,126.29,84.12,S05
+P063,Action Toaster,Home & Kitchen,119.39,62.47,S03
+P064,Wind Sneakers,Apparel,11.32,5.79,S09
+P065,Can Perfume,Beauty,10.26,5.02,S10
+P066,Oil Coffee Maker,Home & Kitchen,25.42,11.33,S05
+P067,Head Moisturizer,Beauty,26.06,11.5,S06
+P068,She Scarf,Apparel,193.06,84.89,S03
+P069,Return Backpack,Sports,44.4,19.28,S10
+P070,Appear Sunscreen,Beauty,347.66,164.15,S07
+P071,Never Bicycle,Sports,405.93,199.72,S09
+P072,Office Toaster,Home & Kitchen,568.79,391.6,S09
+P073,Appear Knife Set,Home & Kitchen,429.73,246.47,S10
+P074,Worry Serum,Beauty,57.6,40.11,S10
+P075,Notice Golf Balls,Sports,116.93,59.84,S05
+P076,Media Resistance Bands,Sports,38.94,20.92,S07
+P077,Four Hat,Apparel,256.15,127.4,S03
+P078,Interesting Foundation,Beauty,338.97,154.19,S06
+P079,Sister Belt,Apparel,295.86,131.05,S08
+P080,Force Toaster,Home & Kitchen,95.21,65.08,S08
+P081,Tell Mouse,Electronics,223.24,155.38,S02
+P082,Would Scarf,Apparel,25.4,10.5,S06
+P083,Year Resistance Bands,Sports,16.16,7.19,S07
+P084,Have Keyboard,Electronics,219.9,115.9,S07
+P085,Social Air Fryer,Home & Kitchen,93.1,42.44,S03
+P086,Agree Lamp,Home & Kitchen,822.2,418.63,S09
+P087,Small Monitor,Electronics,25.35,11.12,S02
+P088,Research Jacket,Apparel,300.3,161.25,S03
+P089,Ground Toaster,Home & Kitchen,108.08,52.04,S02
+P090,Occur Smartwatch,Electronics,273.3,138.17,S09
+P091,Bring Serum,Beauty,264.84,113.43,S04
+P092,Rather Water Bottle,Sports,381.53,201.62,S02
+P093,Actually T-Shirt,Apparel,63.04,43.81,S03
+P094,Front Tablet,Electronics,458.76,228.76,S04
+P095,Next Plate,Home & Kitchen,34.67,22.98,S10
+P096,Action Face Wash,Beauty,22.83,14.91,S06
+P097,Boy Jeans,Apparel,94.74,64.96,S05
+P098,Ability Charger,Electronics,274.32,174.75,S03
+P099,Or Blender,Home & Kitchen,106.2,63.49,S10
+P100,West Yoga Mat,Sports,275.17,180.78,S08
