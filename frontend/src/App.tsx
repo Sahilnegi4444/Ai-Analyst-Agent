@@ -64,6 +64,7 @@ const SqlResultsWidget: React.FC<{ results: Record<string, unknown>[] }> = ({ re
 
   // Identify numeric keys (excluding potential primary/foreign IDs and date-related fields)
   const numericKeys = keys.filter(key => {
+    if (!firstRow) return false
     const val = firstRow[key]
     const isId = key.toLowerCase().includes('id')
     const isDate = dateKeys.includes(key)
