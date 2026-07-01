@@ -13,8 +13,16 @@ class EmbeddingService:
 
     def _init_model(self):
         print(f"Loading embedding model: {settings.EMBEDDING_MODEL_NAME}...")
+        import torch
+        import gc
+        # Optimize PyTorch memory usage for CPU/memory-constrained environments
+        torch.set_num_threads(1)
+        torch.set_grad_enabled(False)
+        
         from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+        self.model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME, device="cpu")
+        
+        gc.collect()
         print("Embedding model loaded successfully.")
 
     def get_embedding(self, text: str) -> List[float]:

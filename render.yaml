@@ -30,6 +30,8 @@ services:
         value: "3600"
       - key: ENABLE_RERANKER
         value: "false"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       - key: OMP_NUM_THREADS
         value: "1"
       - key: MKL_NUM_THREADS
