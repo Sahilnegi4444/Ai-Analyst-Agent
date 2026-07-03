@@ -63,11 +63,11 @@ class MockGroq:
         mock_resp.usage.completion_tokens = 5
         return mock_resp
 
-from app.database import SessionLocal
-from app.agents.router import IntentRouter
-from app.tools.sql_tool import SQLTool
-from app.tools.rag_tool import RAGTool
-from app.services.analytics_service import AnalyticsService
+from app.database import SessionLocal  # noqa: E402
+from app.agents.router import IntentRouter  # noqa: E402
+from app.tools.sql_tool import SQLTool  # noqa: E402
+from app.tools.rag_tool import RAGTool  # noqa: E402
+from app.services.analytics_service import AnalyticsService  # noqa: E402
 
 class TestAIAnalystAgent(unittest.TestCase):
     """
