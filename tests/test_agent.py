@@ -1,21 +1,101 @@
 import unittest
 import os
 import sys
+from unittest.mock import MagicMock, patch
+
+# Force mock providers for unit tests to ensure they run offline
+os.environ["EMBEDDING_PROVIDER"] = "mock"
+os.environ["RERANKER_PROVIDER"] = "mock"
+os.environ["JINA_API_KEY"] = "mock_key"
+os.environ["GROQ_API_KEY"] = "mock_key"
 
 # Add project root to python path so we can import the app module
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.database import SessionLocal
-from app.agents.router import IntentRouter
-from app.tools.sql_tool import SQLTool
-from app.tools.rag_tool import RAGTool
-from app.services.analytics_service import AnalyticsService
+# Define a mock Groq client class for offline unit testing
+class MockGroq:
+    def __init__(self, api_key=None, **kwargs):
+        self.chat = MagicMock()
+        self.chat.completions = MagicMock()
+        self.chat.completions.create = self.mock_create
+
+    def mock_create(self, messages, model, **kwargs):
+        user_content = ""
+        system_content = ""
+        for m in messages:
+            if m["role"] == "user":
+                user_content = m["content"]
+            elif m["role"] == "system":
+                system_content = m["content"]
+
+        mock_resp = MagicMock()
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        
+        # Router classification mock responses
+        if "Classify the following user query" in user_content or "routing agent" in system_content:
+            import re
+            match = re.search(r'User Query: "(.*?)"', user_content)
+            query_val = match.group(1).lower() if match else user_content.lower()
+            
+            if "top 5 products" in query_val:
+                mock_message.content = '{"intent": "SQL_QUERY", "needs_sql": true, "needs_rag": false, "explanation": "Mock SQL"}'
+            elif "sop" in query_val:
+                mock_message.content = '{"intent": "RAG_QUERY", "needs_sql": false, "needs_rag": true, "explanation": "Mock RAG"}'
+            elif "turnover" in query_val:
+                mock_message.content = '{"intent": "ANALYTICS_QUERY", "needs_sql": true, "needs_rag": false, "explanation": "Mock Analytics"}'
+            else:
+                mock_message.content = '{"intent": "UNSUPPORTED_QUERY", "needs_sql": false, "needs_rag": false, "explanation": "Mock Unsupported"}'
+        elif "SQL" in system_content or "postgresql" in user_content.lower() or "select" in user_content.lower():
+            # SQL generator mock
+            mock_message.content = "SELECT (SUM(reorder_quantity) / SUM(current_stock)) AS inventory_turnover_ratio FROM inventory"
+        elif "compress" in system_content.lower() or "context" in system_content.lower():
+            # Context compressor mock
+            mock_message.content = "Compressed context contents"
+        else:
+            # General response generator mock
+            mock_message.content = "The inventory turnover ratio is 5.43, indicating the number of times the company sells and replaces its inventory within a given period."
+            
+        mock_choice.message = mock_message
+        mock_resp.choices = [mock_choice]
+        mock_resp.usage = MagicMock()
+        mock_resp.usage.prompt_tokens = 10
+        mock_resp.usage.completion_tokens = 5
+        return mock_resp
+
+from app.database import SessionLocal  # noqa: E402
+from app.agents.router import IntentRouter  # noqa: E402
+from app.tools.sql_tool import SQLTool  # noqa: E402
+from app.tools.rag_tool import RAGTool  # noqa: E402
+from app.services.analytics_service import AnalyticsService  # noqa: E402
 
 class TestAIAnalystAgent(unittest.TestCase):
     """
     Unit testing suite to verify agent components (Intent Router, SQL Guardrails,
     RAG Retrieval, and Pandas Calculations) for correctness and reliability.
     """
+    @classmethod
+    def setUpClass(cls):
+        # Force Redis to fail connection so that cache service falls back to in-memory caching and does not connect to live Redis
+        cls.redis_patcher = patch('redis.from_url', side_effect=Exception("Redis connection disabled for tests"))
+        cls.redis_patcher.start()
+
+        # Patch Groq globally for all agent classes to enforce offline operation
+        cls.groq_patchers = [
+            patch('app.agents.router.Groq', MockGroq),
+            patch('app.tools.sql_tool.Groq', MockGroq),
+            patch('app.services.context_compressor.Groq', MockGroq),
+            patch('app.agents.workflow.Groq', MockGroq)
+        ]
+        for patcher in cls.groq_patchers:
+            patcher.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.redis_patcher.stop()
+        for patcher in cls.groq_patchers:
+            patcher.stop()
+
     def setUp(self):
         # Open a database session connection for standard data checks
         self.db = SessionLocal()
