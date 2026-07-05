@@ -115,3 +115,6 @@ data/evaluation_report.json
 data/*.db
 data/*.sqlite
 scratch/
+
+
+interview_skills/
