@@ -46,7 +46,7 @@ jobs:
       - name: Install Dependencies
         run: |
           cd frontend
-          npm ci
+          npm install
 
       - name: Run ESLint
         run: |
@@ -158,7 +158,7 @@ jobs:
       - name: Install Frontend Dependencies & Build
         run: |
           cd frontend
-          npm ci
+          npm install
           npm run build
 
       - name: Prepare Package files
