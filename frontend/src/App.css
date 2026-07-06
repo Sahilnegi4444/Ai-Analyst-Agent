@@ -119,7 +119,7 @@
   transform: translateX(4px);
 }
 
-.icon-indigo { color: #818cf8; }
+.icon-teal { color: #2dd4bf; }
 .icon-warn { color: #fb7185; }
 .icon-success { color: #34d399; }
 .icon-info { color: #38bdf8; }
@@ -520,7 +520,7 @@
   align-items: center;
 }
 
-.text-indigo {
+.text-teal {
   color: var(--accent-brand);
   border-color: var(--accent-brand-border);
   background-color: var(--accent-brand-bg);

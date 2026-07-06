@@ -10,10 +10,10 @@
   --border-hover: #cbd5e1;
   --code-bg: #f1f5f9;
   
-  --accent-brand: #6366f1; /* Velvet Indigo */
-  --accent-brand-hover: #4f46e5;
-  --accent-brand-bg: rgba(99, 102, 241, 0.08);
-  --accent-brand-border: rgba(99, 102, 241, 0.2);
+  --accent-brand: #0d9488; /* Sophisticated Teal */
+  --accent-brand-hover: #0f766e;
+  --accent-brand-bg: rgba(13, 148, 136, 0.08);
+  --accent-brand-border: rgba(13, 148, 136, 0.2);
   
   --accent-success: #10b981; /* Forest Emerald */
   --accent-success-bg: rgba(16, 185, 129, 0.08);
@@ -64,10 +64,10 @@
     --border-hover: #334155;
     --code-bg: #1e293b;
     
-    --accent-brand: #818cf8;
-    --accent-brand-hover: #6366f1;
-    --accent-brand-bg: rgba(129, 140, 248, 0.1);
-    --accent-brand-border: rgba(129, 140, 248, 0.3);
+    --accent-brand: #2dd4bf; /* Light Teal */
+    --accent-brand-hover: #0d9488;
+    --accent-brand-bg: rgba(45, 212, 191, 0.1);
+    --accent-brand-border: rgba(45, 212, 191, 0.3);
     
     --accent-success: #34d399;
     --accent-success-bg: rgba(52, 211, 153, 0.1);
