@@ -14,6 +14,8 @@
   --accent-brand-hover: #0f766e;
   --accent-brand-bg: rgba(13, 148, 136, 0.08);
   --accent-brand-border: rgba(13, 148, 136, 0.2);
+  --accent: var(--accent-brand);
+  --accent-hover: var(--accent-brand-hover);
   
   --accent-success: #10b981; /* Forest Emerald */
   --accent-success-bg: rgba(16, 185, 129, 0.08);
@@ -68,6 +70,8 @@
     --accent-brand-hover: #0d9488;
     --accent-brand-bg: rgba(45, 212, 191, 0.1);
     --accent-brand-border: rgba(45, 212, 191, 0.3);
+    --accent: var(--accent-brand);
+    --accent-hover: var(--accent-brand-hover);
     
     --accent-success: #34d399;
     --accent-success-bg: rgba(52, 211, 153, 0.1);
