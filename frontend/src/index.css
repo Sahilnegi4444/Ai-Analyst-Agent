@@ -1,45 +1,44 @@
 :root {
-  /* Premium Dark Slate Color Palette */
-  --bg-deep: #0F172A;
-  --bg-workspace: #0F172A;
-  --bg-panel: #1E293B;
+  /* Vercel & Notion AI Inspired Clean Light Palette */
+  --bg-deep: #ffffff;
+  --bg-workspace: #fafafa;
+  --bg-panel: #ffffff;
   
-  --text: #94A3B8;
-  --text-h: #F1F5F9;
-  --border: #334155;
-  --border-hover: #475569;
-  --code-bg: #1E293B;
+  --text: #3f3f46;      /* Muted Zinc text for paragraphs */
+  --text-h: #09090b;    /* High contrast dark zinc for headers */
+  --border: #e4e4e7;    /* Crisp, thin borders */
+  --border-hover: #d4d4d8;
+  --code-bg: #f4f4f5;
   
-  --accent-brand: #2FB5A8; /* Softer Teal Accent */
-  --accent-brand-hover: #249085;
-  --accent-brand-bg: rgba(47, 181, 168, 0.08);
-  --accent-brand-border: rgba(47, 181, 168, 0.2);
+  --accent-brand: #18181b; /* Neutral dark brand accent */
+  --accent-brand-hover: #27272a;
+  --accent-brand-bg: rgba(24, 24, 27, 0.05);
+  --accent-brand-border: rgba(24, 24, 27, 0.15);
   --accent: var(--accent-brand);
   --accent-hover: var(--accent-brand-hover);
   
-  --chart-blue: #5B8DEF; /* Separate blue accent for charts */
+  --accent-success: #10b981;
+  --accent-success-bg: rgba(16, 185, 129, 0.06);
+  --accent-success-border: rgba(16, 185, 129, 0.15);
   
-  --accent-success: #10B981; /* Forest Emerald */
-  --accent-success-bg: rgba(16, 185, 129, 0.08);
-  --accent-success-border: rgba(16, 185, 129, 0.2);
+  --accent-warn: #ef4444;
+  --accent-warn-bg: rgba(239, 68, 68, 0.06);
+  --accent-warn-border: rgba(239, 68, 68, 0.15);
   
-  --accent-warn: #F43F5E; /* Rose Copper */
-  --accent-warn-bg: rgba(244, 63, 94, 0.08);
-  --accent-warn-border: rgba(244, 63, 94, 0.2);
+  --sidebar-bg: #f4f4f5; /* Light Notion-like sidebar */
+  --sidebar-text: #18181b;
+  --sidebar-text-muted: #71717a;
   
-  --sidebar-bg: #0F172A;
-  --sidebar-text: #F8FAFC;
-  --sidebar-text-muted: #64748B;
+  /* flat, soft shadows - no neon colors, no glows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-  
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   /* Typography Pairing */
   --display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
@@ -58,24 +57,40 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Maintain premium dark slate properties consistently */
-    --bg-workspace: #0F172A;
-    --bg-panel: #1E293B;
+    /* Flat Minimalist Vercel Dark Mode (no neon, no glows) */
+    --bg-workspace: #09090b;
+    --bg-panel: #18181b;
+    --bg-deep: #09090b;
     
-    --text: #94A3B8;
-    --text-h: #F1F5F9;
-    --border: #334155;
-    --border-hover: #475569;
-    --code-bg: #1E293B;
+    --text: #a1a1aa;
+    --text-h: #f4f4f5;
+    --border: #27272a;
+    --border-hover: #3f3f46;
+    --code-bg: #27272a;
     
-    --accent-brand: #2FB5A8;
-    --accent-brand-hover: #249085;
-    --accent-brand-bg: rgba(47, 181, 168, 0.08);
-    --accent-brand-border: rgba(47, 181, 168, 0.2);
+    --accent-brand: #ffffff;
+    --accent-brand-hover: #e4e4e7;
+    --accent-brand-bg: rgba(255, 255, 255, 0.08);
+    --accent-brand-border: rgba(255, 255, 255, 0.2);
     --accent: var(--accent-brand);
     --accent-hover: var(--accent-brand-hover);
     
-    --chart-blue: #5B8DEF;
+    --accent-success: #34d399;
+    --accent-success-bg: rgba(52, 211, 153, 0.08);
+    --accent-success-border: rgba(52, 211, 153, 0.2);
+    
+    --accent-warn: #f87171;
+    --accent-warn-bg: rgba(248, 113, 113, 0.08);
+    --accent-warn-border: rgba(248, 113, 113, 0.2);
+    
+    --sidebar-bg: #18181b;
+    --sidebar-text: #f4f4f5;
+    --sidebar-text-muted: #71717a;
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
   }
 }
 

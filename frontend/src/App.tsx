@@ -156,8 +156,8 @@ const SqlResultsWidget: React.FC<{ results: Record<string, unknown>[] }> = ({ re
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="chartColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--chart-blue)" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="var(--chart-blue)" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -166,7 +166,7 @@ const SqlResultsWidget: React.FC<{ results: Record<string, unknown>[] }> = ({ re
               <Tooltip
                 contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border)', color: 'var(--text-h)', borderRadius: 8 }}
               />
-              <Area type="monotone" dataKey={yAxisKey} stroke="var(--chart-blue)" fillOpacity={1} fill="url(#chartColor)" strokeWidth={2} />
+              <Area type="monotone" dataKey={yAxisKey} stroke="var(--accent)" fillOpacity={1} fill="url(#chartColor)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -182,7 +182,7 @@ const SqlResultsWidget: React.FC<{ results: Record<string, unknown>[] }> = ({ re
               <Tooltip
                 contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border)', color: 'var(--text-h)', borderRadius: 8 }}
               />
-              <Bar dataKey={yAxisKey} fill="var(--chart-blue)" radius={[4, 4, 0, 0]} maxBarSize={45} />
+              <Bar dataKey={yAxisKey} fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={45} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -267,18 +267,7 @@ function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [apiOnline, setApiOnline] = useState<'checking' | 'online' | 'offline'>('checking')
   const scrollerRef = useRef<HTMLDivElement>(null)
-
-  // Verify Backend Connectivity on Startup
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/`)
-      .then(res => {
-        if (res.ok) setApiOnline('online')
-        else setApiOnline('offline')
-      })
-      .catch(() => setApiOnline('offline'))
-  }, [])
 
   // Auto Scroll to Bottom on Messages Update
   useEffect(() => {
@@ -381,12 +370,7 @@ function App() {
           </div>
         </div>
 
-        <div className="sidebar-footer">
-          <div className={`status-badge ${apiOnline === 'online' ? 'online' : 'offline'}`}>
-            <span className="indicator" />
-            <span>Backend: {apiOnline === 'online' ? 'Online (8000)' : 'Offline'}</span>
-          </div>
-        </div>
+        {/* Footer status-badge removed */}
       </aside>
 
       {/* 2. MAIN CHAT AREA */}
@@ -521,9 +505,7 @@ function App() {
               <Send size={18} />
             </button>
           </form>
-          <div className="disclaimer-text">
-            Antigravity BI executes safe read-only queries. Calculations are pre-computed via Pandas.
-          </div>
+          {/* Disclaimer removed */}
         </div>
       </main>
     </div>
