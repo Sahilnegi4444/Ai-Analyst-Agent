@@ -6,9 +6,27 @@ This repository has been fully optimized to minimize LLM token consumption, redu
 
 ---
 
-## System Architecture
+## Tech Stack & Core Models
 
-The following diagram visualizes the optimized architecture of the platform, tracking the query flow from the React frontend dashboard down to the multi-level caching layer, rule router, conditional edges, dynamic summarizers, and local search indexers:
+| Technology / Layer | Model / Tool | Why (2-3 Words) |
+| :--- | :--- | :--- |
+| **Backend API** | FastAPI | Fast async endpoints |
+| **Database Engine** | PostgreSQL + pgvector | Integrated vector search |
+| **Caching Layer** | Redis + Upstash | Millisecond data retrieval |
+| **Agent Orchestrator** | LangGraph | Complex state workflows |
+| **Cloud Embeddings** | Jina AI (`jina-embeddings-v3`) | Compact vector dimensions |
+| **Cloud Reranking** | Jina AI (`jina-reranker-v2-base-multilingual`) | Accurate relevance scoring |
+| **Local Embeddings** | SentenceTransformers (`all-MiniLM-L6-v2`) | Offline local search |
+| **Local Reranking** | CrossEncoder (`cross-encoder/ettin-reranker-17m-v1`) | Minimal RAM footprint |
+| **Intent Router** | Groq (`llama-3.1-8b-instant`) | Ultra-fast JSON routing |
+| **SQL Generator** | Groq (`llama-3.1-8b-instant`) | Fast query compilation |
+| **Response Synthesis**| Groq (`llama-3.3-70b-versatile`) | Premium reasoning output |
+| **Frontend UI** | React + Vite + TypeScript | Type-safe hot reloading |
+| **Data Visualizations**| Recharts | Dynamic interactive plotting |
+
+---
+
+## Tech g the query flow from the React frontend dashboard down to the multi-level caching layer, rule router, conditional edges, dynamic summarizers, and local search indexers:
 
 ```mermaid
 graph TD
