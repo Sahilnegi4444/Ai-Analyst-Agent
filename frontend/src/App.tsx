@@ -267,18 +267,7 @@ function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [apiOnline, setApiOnline] = useState<'checking' | 'online' | 'offline'>('checking')
   const scrollerRef = useRef<HTMLDivElement>(null)
-
-  // Verify Backend Connectivity on Startup
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/`)
-      .then(res => {
-        if (res.ok) setApiOnline('online')
-        else setApiOnline('offline')
-      })
-      .catch(() => setApiOnline('offline'))
-  }, [])
 
   // Auto Scroll to Bottom on Messages Update
   useEffect(() => {
@@ -381,12 +370,7 @@ function App() {
           </div>
         </div>
 
-        <div className="sidebar-footer">
-          <div className={`status-badge ${apiOnline === 'online' ? 'online' : 'offline'}`}>
-            <span className="indicator" />
-            <span>Backend: {apiOnline === 'online' ? 'Online (8000)' : 'Offline'}</span>
-          </div>
-        </div>
+        {/* Footer status-badge removed */}
       </aside>
 
       {/* 2. MAIN CHAT AREA */}
@@ -521,9 +505,7 @@ function App() {
               <Send size={18} />
             </button>
           </form>
-          <div className="disclaimer-text">
-            Antigravity BI executes safe read-only queries. Calculations are pre-computed via Pandas.
-          </div>
+          {/* Disclaimer removed */}
         </div>
       </main>
     </div>
