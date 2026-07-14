@@ -871,3 +871,36 @@
   color: var(--text-h);
   font-weight: 700;
 }
+
+/* =====================================================================
+   CHAT MEMORY & SESSIONS STYLING
+   ===================================================================== */
+.new-chat-btn {
+  background-color: var(--accent) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.new-chat-btn:hover {
+  background-color: var(--accent-light) !important;
+  opacity: 0.9;
+}
+
+.session-btn {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11px !important;
+  opacity: 0.8;
+}
+
+.session-btn.active {
+  background-color: var(--border) !important;
+  border-left: 3px solid var(--accent) !important;
+  opacity: 1;
+}

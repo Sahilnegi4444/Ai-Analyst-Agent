@@ -8,7 +8,9 @@ import {
   Menu,
   X,
   Table2,
-  Layers
+  Layers,
+  Plus,
+  MessageSquare
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -267,7 +269,63 @@ function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sessionId, setSessionId] = useState<string>('')
+  const [sessions, setSessions] = useState<string[]>([])
   const scrollerRef = useRef<HTMLDivElement>(null)
+
+  // Load or generate session ID on mount
+  useEffect(() => {
+    let sid = localStorage.getItem('ai_analyst_session_id')
+    if (!sid) {
+      sid = window.crypto.randomUUID ? window.crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2, 11)
+      localStorage.setItem('ai_analyst_session_id', sid)
+    }
+    setSessionId(sid)
+  }, [])
+
+  const loadSessionMessages = async (sid: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions/${sid}/messages`)
+      if (response.ok) {
+        const data = await response.json()
+        const formattedMessages = data.messages.map((m: any) => ({
+          id: `msg-${m.id}`,
+          sender: m.sender as 'user' | 'agent',
+          text: m.text,
+          intent: m.intent,
+          sql_generated: m.sql_generated,
+          sql_results: m.sql_results,
+          sources: m.sources,
+          latency_seconds: m.latency_seconds,
+          cached: m.cached,
+          status: m.status
+        }))
+        setMessages(formattedMessages)
+      }
+    } catch (err) {
+      console.error("Failed to load session messages:", err)
+    }
+  }
+
+  const loadSessions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions`)
+      if (response.ok) {
+        const data = await response.json()
+        setSessions(data.sessions || [])
+      }
+    } catch (err) {
+      console.error("Failed to load sessions list:", err)
+    }
+  }
+
+  // Load data when sessionId changes
+  useEffect(() => {
+    if (sessionId) {
+      loadSessionMessages(sessionId)
+      loadSessions()
+    }
+  }, [sessionId])
 
   // Auto Scroll to Bottom on Messages Update
   useEffect(() => {
@@ -297,7 +355,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryText })
+        body: JSON.stringify({ query: queryText, session_id: sessionId })
       })
 
       if (!response.ok) {
@@ -320,6 +378,7 @@ function App() {
       }
 
       setMessages(prev => [...prev, agentMsg])
+      loadSessions()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       const errorMsg: Message = {
@@ -338,6 +397,20 @@ function App() {
     handleSubmitQuery(query)
   }
 
+  // New Chat session trigger
+  const handleNewChat = () => {
+    const sid = window.crypto.randomUUID ? window.crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2, 11)
+    localStorage.setItem('ai_analyst_session_id', sid)
+    setSessionId(sid)
+    setMessages([])
+  }
+
+  // Switch session trigger
+  const handleSelectSession = (sid: string) => {
+    localStorage.setItem('ai_analyst_session_id', sid)
+    setSessionId(sid)
+  }
+
   return (
     <div className="dashboard-layout">
       {/* 1. LEFT SIDEBAR PANEL */}
@@ -353,6 +426,31 @@ function App() {
         </div>
 
         <div className="sidebar-content">
+          {/* New Chat Button */}
+          <button className="sidebar-btn new-chat-btn" onClick={handleNewChat}>
+            <Plus size={16} /> New Chat
+          </button>
+
+          {/* Session List */}
+          {sessions.length > 0 && (
+            <div className="sidebar-section">
+              <span className="sidebar-title">Recent Chats</span>
+              <div className="sidebar-button-group">
+                {sessions.map(sid => (
+                  <button
+                    key={sid}
+                    className={`sidebar-btn session-btn ${sid === sessionId ? 'active' : ''}`}
+                    onClick={() => handleSelectSession(sid)}
+                    title={sid}
+                  >
+                    <MessageSquare size={14} />
+                    {sid.length > 18 ? sid.substring(0, 15) + '...' : sid}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="sidebar-section">
             <span className="sidebar-title">Suggested Prompts</span>
             <button className="sidebar-btn" onClick={() => handleSuggestionClick("Show top 5 products by revenue.")}>

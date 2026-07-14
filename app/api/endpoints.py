@@ -4,7 +4,14 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.chat import ChatRequest, ChatResponse, SourceAttribution
+from app.schemas.chat import (
+    ChatRequest,
+    ChatResponse,
+    SourceAttribution,
+    MessageHistoryResponse,
+    MessageHistoryItem,
+    SessionListResponse
+)
 from app.schemas.documents import DocumentMetadata, DocumentListResponse, DocumentUploadResponse
 from app.schemas.analytics import AnalyticsReport, SalesSummary, InventorySummary
 from app.agents.workflow import AgentExecutor
@@ -16,17 +23,30 @@ from sqlalchemy import func
 router = APIRouter()
 
 # =====================================================================
-# CHAT ENDPOINT
+# CHAT ENDPOINTS
 # =====================================================================
 @router.post("/chat", response_model=ChatResponse)
-def chat_with_agent(request: ChatRequest):
+def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
     """
     Primary agent interface. Classifies query intent, routes to appropriate SQL,
     RAG, or Analytics tools, and synthesizes a factual business answer.
     """
     try:
-        # Invoke LangGraph Agent workflow
-        res = AgentExecutor.run(request.query)
+        from app.services.memory_service import ChatMemoryService
+        memory_service = ChatMemoryService()
+
+        # 1. Resolve session_id and load history
+        session_id = request.session_id or "default_session"
+        history = memory_service.get_history(db, session_id, limit=10)
+
+        # 2. Contextualize/rewrite the user query
+        processed_query = memory_service.contextualize_query(request.query, history)
+
+        # 3. Save User message to history
+        memory_service.add_message(db, session_id=session_id, sender="user", text=request.query)
+
+        # 4. Invoke LangGraph Agent workflow using the contextualized/rewritten query
+        res = AgentExecutor.run(processed_query)
         
         # Format source attributions if RAG chunks are present
         sources = None
@@ -39,6 +59,32 @@ def chat_with_agent(request: ChatRequest):
                     confidence=c["confidence"]
                 ) for c in res["rag_chunks"]
             ]
+
+        # 5. Save Agent response to history
+        sources_dict = None
+        if res.get("rag_chunks"):
+            sources_dict = [
+                {
+                    "filename": c["filename"],
+                    "title": c["title"],
+                    "content_snippet": c["content"],
+                    "confidence": c["confidence"]
+                } for c in res["rag_chunks"]
+            ]
+
+        memory_service.add_message(
+            db,
+            session_id=session_id,
+            sender="agent",
+            text=res["final_response"],
+            intent=res["intent"].get("intent", "UNKNOWN"),
+            sql_generated=res.get("sql_query"),
+            sql_results=res.get("sql_results"),
+            sources=sources_dict,
+            latency_seconds=res.get("latency", 0.0),
+            cached=res.get("cached", False),
+            status=res["status"]
+        )
 
         return ChatResponse(
             query=res["query"],
@@ -53,6 +99,62 @@ def chat_with_agent(request: ChatRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Agent runtime failure: {e}")
+
+@router.get("/sessions", response_model=SessionListResponse)
+def list_chat_sessions(db: Session = Depends(get_db)):
+    """
+    Returns a list of unique session IDs sorted by their latest activity.
+    """
+    try:
+        from app.services.memory_service import ChatMemoryService
+        memory_service = ChatMemoryService()
+        sessions = memory_service.get_sessions(db)
+        return SessionListResponse(sessions=sessions)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load sessions: {e}")
+
+@router.get("/sessions/{session_id}/messages", response_model=MessageHistoryResponse)
+def get_session_message_history(session_id: str, db: Session = Depends(get_db)):
+    """
+    Returns the full chronological message log for a specific session.
+    """
+    try:
+        from app.services.memory_service import ChatMemoryService
+        memory_service = ChatMemoryService()
+        history = memory_service.get_history(db, session_id, limit=50) # Return up to 50 messages
+        
+        items = []
+        for msg in history:
+            sources = None
+            if msg.sources:
+                sources = [
+                    SourceAttribution(
+                        filename=s["filename"],
+                        title=s["title"],
+                        content_snippet=s["content_snippet"],
+                        confidence=s["confidence"]
+                    ) for s in msg.sources
+                ]
+            
+            items.append(
+                MessageHistoryItem(
+                    id=msg.id,
+                    session_id=msg.session_id,
+                    sender=msg.sender,
+                    text=msg.text,
+                    intent=msg.intent,
+                    sql_generated=msg.sql_generated,
+                    sql_results=msg.sql_results,
+                    sources=sources,
+                    latency_seconds=float(msg.latency_seconds) if msg.latency_seconds is not None else None,
+                    cached=msg.cached,
+                    status=msg.status,
+                    timestamp=msg.timestamp
+                )
+            )
+        return MessageHistoryResponse(messages=items)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch session history: {e}")
 
 # =====================================================================
 # DOCUMENT UPLOAD & MANAGEMENT ENDPOINTS
