@@ -904,3 +904,89 @@
   border-left: 3px solid var(--accent) !important;
   opacity: 1;
 }
+
+/* =====================================================================
+   METADATA PILLS STYLING
+   ===================================================================== */
+.message-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.meta-pill {
+  font-size: 11px;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 12px;
+  color: var(--sidebar-text-muted);
+}
+
+/* =====================================================================
+   SIDEBAR SESSION ITEM ROW & DELETE BUTTON
+   ===================================================================== */
+.session-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--sidebar-text);
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+}
+
+.session-item-row:hover {
+  background-color: var(--border);
+}
+
+.session-item-row.active {
+  background-color: var(--border) !important;
+  border-left: 3px solid var(--accent) !important;
+}
+
+.session-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
+.session-item-text {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--sans);
+  font-size: 13px;
+}
+
+.session-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--sidebar-text-muted);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s ease;
+  margin-left: 6px;
+}
+
+.session-item-row:hover .session-delete-btn {
+  opacity: 1;
+}
+
+.session-delete-btn:hover {
+  color: var(--accent-warn) !important;
+  background-color: rgba(239, 68, 68, 0.08);
+}

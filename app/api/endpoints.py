@@ -156,6 +156,19 @@ def get_session_message_history(session_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch session history: {e}")
 
+@router.delete("/sessions/{session_id}")
+def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
+    """
+    Deletes all messages and logs associated with a session ID.
+    """
+    try:
+        from app.services.memory_service import ChatMemoryService
+        memory_service = ChatMemoryService()
+        memory_service.delete_session(db, session_id)
+        return {"status": "success", "message": f"Session {session_id} successfully deleted."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete session: {e}")
+
 # =====================================================================
 # DOCUMENT UPLOAD & MANAGEMENT ENDPOINTS
 # =====================================================================

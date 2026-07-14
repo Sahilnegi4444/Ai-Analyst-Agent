@@ -143,3 +143,15 @@ class ChatMemoryService:
         )
         
         return [row[0] for row in rows]
+
+    def delete_session(self, db: Session, session_id: str):
+        """
+        Deletes all message history records associated with a session ID.
+        """
+        try:
+            db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"[ERROR] Failed to delete session: {e}")
+            raise e

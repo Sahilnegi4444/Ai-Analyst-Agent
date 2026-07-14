@@ -10,7 +10,8 @@ import {
   Table2,
   Layers,
   Plus,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -411,6 +412,33 @@ function App() {
     setSessionId(sid)
   }
 
+  // Delete session history trigger
+  const handleDeleteSession = async (e: React.MouseEvent, sid: string) => {
+    e.stopPropagation() // Prevent selecting the session when clicking delete
+    
+    if (!window.confirm("Are you sure you want to delete this chat session?")) {
+      return
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions/${sid}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        // Reload sessions list
+        await loadSessions()
+        
+        // If deleted session was active, start a new chat
+        if (sid === sessionId) {
+          handleNewChat()
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete session:", err)
+    }
+  }
+
   return (
     <div className="dashboard-layout">
       {/* 1. LEFT SIDEBAR PANEL */}
@@ -437,15 +465,26 @@ function App() {
               <span className="sidebar-title">Recent Chats</span>
               <div className="sidebar-button-group">
                 {sessions.map(sid => (
-                  <button
+                  <div
                     key={sid}
-                    className={`sidebar-btn session-btn ${sid === sessionId ? 'active' : ''}`}
+                    className={`session-item-row ${sid === sessionId ? 'active' : ''}`}
                     onClick={() => handleSelectSession(sid)}
                     title={sid}
                   >
-                    <MessageSquare size={14} />
-                    {sid.length > 18 ? sid.substring(0, 15) + '...' : sid}
-                  </button>
+                    <div className="session-item-left">
+                      <MessageSquare size={14} style={{ flexShrink: 0 }} />
+                      <span className="session-item-text">
+                        {sid.length > 18 ? sid.substring(0, 15) + '...' : sid}
+                      </span>
+                    </div>
+                    <button
+                      className="session-delete-btn"
+                      onClick={(e) => handleDeleteSession(e, sid)}
+                      title="Delete Chat"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

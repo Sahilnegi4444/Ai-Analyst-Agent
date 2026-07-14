@@ -90,3 +90,16 @@ class TestMemoryService(unittest.TestCase):
         # 2. Contextualize query
         rewritten = self.service.contextualize_query("What is their rating?", [msg1, msg2])
         self.assertEqual(rewritten, "What is the average rating of suppliers from Germany?")
+
+    def test_delete_session(self):
+        # 1. Add message
+        self.service.add_message(self.db, self.session_id, "user", "Message to delete")
+        history_before = self.service.get_history(self.db, self.session_id)
+        self.assertEqual(len(history_before), 1)
+
+        # 2. Delete session
+        self.service.delete_session(self.db, self.session_id)
+        
+        # 3. Retrieve history and assert empty
+        history_after = self.service.get_history(self.db, self.session_id)
+        self.assertEqual(len(history_after), 0)
