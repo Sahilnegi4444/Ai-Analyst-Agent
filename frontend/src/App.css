@@ -876,8 +876,9 @@
    CHAT MEMORY & SESSIONS STYLING
    ===================================================================== */
 .new-chat-btn {
-  background-color: var(--accent) !important;
-  color: white !important;
+  background-color: var(--accent-brand-bg) !important;
+  color: var(--sidebar-text) !important;
+  border: 1px solid var(--accent-brand-border) !important;
   font-weight: 600 !important;
   justify-content: center;
   margin-bottom: 12px;
@@ -886,8 +887,17 @@
 }
 
 .new-chat-btn:hover {
-  background-color: var(--accent-light) !important;
-  opacity: 0.9;
+  background-color: var(--accent-brand-hover) !important;
+  color: var(--bg-deep) !important;
+  border-color: var(--accent-brand-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .new-chat-btn:hover {
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.08);
+  }
 }
 
 .session-btn {
