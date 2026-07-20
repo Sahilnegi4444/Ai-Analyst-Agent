@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 # Configure standard console logger
@@ -37,7 +37,7 @@ class ObservabilityLogger:
     ):
         # Format the log record
         log_record = {
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%d %H:%M:%S'),
             "user_query": user_query,
             "detected_intent": detected_intent,
             "selected_tools": selected_tools,
@@ -69,8 +69,8 @@ class ObservabilityLogger:
                 os.makedirs(os.path.dirname(cls.LOG_FILE), exist_ok=True)
                 with open(cls.LOG_FILE, "a", encoding="utf-8") as f:
                     f.write(json.dumps(log_record) + "\n")
-            except Exception as e:
-                logger.error(f"Failed to write observability log: {e}")
+            except Exception:
+                logger.exception("Failed to write observability log")
         else:
             # Stream JSON-lines directly to stdout for production log aggregation
             print(f"[OBSERVABILITY RUN LOG] {json.dumps(log_record)}")

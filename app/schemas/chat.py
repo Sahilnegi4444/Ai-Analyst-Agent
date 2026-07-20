@@ -6,6 +6,7 @@ class ChatRequest(BaseModel):
     Pydantic model representing a chat request from a user.
     """
     query: str = Field(..., description="The natural language question from the user.")
+    session_id: Optional[str] = Field(None, description="The session or conversation identifier.")
 
 class SourceAttribution(BaseModel):
     """
@@ -29,3 +30,32 @@ class ChatResponse(BaseModel):
     sources: Optional[List[SourceAttribution]] = Field(None, description="Document chunks matched via RAG vector search.")
     latency_seconds: float = Field(..., description="Overall latency for the agent invocation in seconds.")
     cached: bool = Field(False, description="Whether the response was served from cache.")
+
+class MessageHistoryItem(BaseModel):
+    """
+    Pydantic model representing a past message in a session.
+    """
+    id: int
+    session_id: str
+    sender: str
+    text: str
+    intent: Optional[str] = None
+    sql_generated: Optional[str] = None
+    sql_results: Optional[List[Dict[str, Any]]] = None
+    sources: Optional[List[SourceAttribution]] = None
+    latency_seconds: Optional[float] = None
+    cached: Optional[bool] = None
+    status: Optional[str] = None
+    timestamp: Any
+
+class MessageHistoryResponse(BaseModel):
+    """
+    Pydantic model representing list of messages in history.
+    """
+    messages: List[MessageHistoryItem]
+
+class SessionListResponse(BaseModel):
+    """
+    Pydantic model representing the list of active sessions.
+    """
+    sessions: List[str]

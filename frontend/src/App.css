@@ -358,6 +358,9 @@
   flex-direction: column;
   gap: 6px;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
 }
 
 .suggest-card:hover {
@@ -870,4 +873,133 @@
 .bold-text {
   color: var(--text-h);
   font-weight: 700;
+}
+
+/* =====================================================================
+   CHAT MEMORY & SESSIONS STYLING
+   ===================================================================== */
+.new-chat-btn {
+  background-color: var(--accent-brand-bg) !important;
+  color: var(--sidebar-text) !important;
+  border: 1px solid var(--accent-brand-border) !important;
+  font-weight: 600 !important;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.new-chat-btn:hover {
+  background-color: var(--accent-brand-hover) !important;
+  color: var(--bg-deep) !important;
+  border-color: var(--accent-brand-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .new-chat-btn:hover {
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.08);
+  }
+}
+
+.session-btn {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11px !important;
+  opacity: 0.8;
+}
+
+.session-btn.active {
+  background-color: var(--border) !important;
+  border-left: 3px solid var(--accent) !important;
+  opacity: 1;
+}
+
+/* =====================================================================
+   METADATA PILLS STYLING
+   ===================================================================== */
+.message-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.meta-pill {
+  font-size: 11px;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 12px;
+  color: var(--sidebar-text-muted);
+}
+
+/* =====================================================================
+   SIDEBAR SESSION ITEM ROW & DELETE BUTTON
+   ===================================================================== */
+.session-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--sidebar-text);
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+}
+
+.session-item-row:hover {
+  background-color: var(--border);
+}
+
+.session-item-row.active {
+  background-color: var(--border) !important;
+  border-left: 3px solid var(--accent) !important;
+}
+
+.session-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
+.session-item-text {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--sans);
+  font-size: 13px;
+}
+
+.session-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--sidebar-text-muted);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s ease;
+  margin-left: 6px;
+}
+
+.session-item-row:hover .session-delete-btn {
+  opacity: 1;
+}
+
+.session-delete-btn:hover {
+  color: var(--accent-warn) !important;
+  background-color: rgba(239, 68, 68, 0.08);
 }

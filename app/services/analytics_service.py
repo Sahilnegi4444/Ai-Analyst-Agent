@@ -144,7 +144,7 @@ class AnalyticsService:
         weekly_totals = history_merged.groupby('week_start_date')['inventory_value'].sum()
         average_inventory_value = float(weekly_totals.mean())
 
-        if average_inventory_value == 0.0:
+        if abs(average_inventory_value) < 1e-9:
             return 0.0
 
         return round(cogs / average_inventory_value, 2)

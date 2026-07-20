@@ -8,7 +8,10 @@ import {
   Menu,
   X,
   Table2,
-  Layers
+  Layers,
+  Plus,
+  MessageSquare,
+  Trash2
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -22,6 +25,18 @@ import {
   Tooltip
 } from 'recharts'
 import './App.css'
+
+const generateSessionId = (): string => {
+  if (typeof window !== 'undefined' && window.crypto) {
+    if (window.crypto.randomUUID) {
+      return window.crypto.randomUUID()
+    }
+    const array = new Uint32Array(4)
+    window.crypto.getRandomValues(array)
+    return 'sess-' + Array.from(array, dec => dec.toString(36)).join('').substring(0, 16)
+  }
+  return 'sess-' + Date.now().toString(36) + '-' + Math.floor(Date.now() * 1000).toString(36)
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -38,6 +53,19 @@ interface Source {
 interface Message {
   id: string
   sender: 'user' | 'agent'
+  text: string
+  intent?: string
+  sql_generated?: string | null
+  sql_results?: Record<string, unknown>[] | null
+  sources?: Source[] | null
+  latency_seconds?: number
+  cached?: boolean
+  status?: string
+}
+
+interface ApiMessage {
+  id: number
+  sender: string
   text: string
   intent?: string
   sql_generated?: string | null
@@ -267,7 +295,65 @@ function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sessionId, setSessionId] = useState<string>(() => {
+    const sid = localStorage.getItem('ai_analyst_session_id')
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) {
+      const newSid = generateSessionId()
+      localStorage.setItem('ai_analyst_session_id', newSid)
+      return newSid
+    }
+    return sid
+  })
+  const [sessions, setSessions] = useState<string[]>([])
   const scrollerRef = useRef<HTMLDivElement>(null)
+
+  const loadSessionMessages = async (sid: string) => {
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) {
+      console.error("Invalid session ID format")
+      return
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sid)}/messages`)
+      if (response.ok) {
+        const data = await response.json()
+        const formattedMessages = data.messages.map((m: ApiMessage) => ({
+          id: `msg-${m.id}`,
+          sender: m.sender as 'user' | 'agent',
+          text: m.text,
+          intent: m.intent,
+          sql_generated: m.sql_generated,
+          sql_results: m.sql_results,
+          sources: m.sources,
+          latency_seconds: m.latency_seconds,
+          cached: m.cached,
+          status: m.status
+        }))
+        setMessages(formattedMessages)
+      }
+    } catch (err) {
+      console.error("Failed to load session messages:", err)
+    }
+  }
+
+  const loadSessions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions`)
+      if (response.ok) {
+        const data = await response.json()
+        setSessions(data.sessions || [])
+      }
+    } catch (err) {
+      console.error("Failed to load sessions list:", err)
+    }
+  }
+
+  // Load data when sessionId changes
+  useEffect(() => {
+    if (sessionId) {
+      loadSessionMessages(sessionId)
+      loadSessions()
+    }
+  }, [sessionId])
 
   // Auto Scroll to Bottom on Messages Update
   useEffect(() => {
@@ -297,7 +383,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryText })
+        body: JSON.stringify({ query: queryText, session_id: sessionId })
       })
 
       if (!response.ok) {
@@ -320,6 +406,7 @@ function App() {
       }
 
       setMessages(prev => [...prev, agentMsg])
+      loadSessions()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       const errorMsg: Message = {
@@ -338,6 +425,49 @@ function App() {
     handleSubmitQuery(query)
   }
 
+  // New Chat session trigger
+  const handleNewChat = () => {
+    const sid = generateSessionId()
+    localStorage.setItem('ai_analyst_session_id', sid)
+    setSessionId(sid)
+    setMessages([])
+  }
+
+  // Switch session trigger
+  const handleSelectSession = (sid: string) => {
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) return
+    localStorage.setItem('ai_analyst_session_id', sid)
+    setSessionId(sid)
+  }
+
+  // Delete session history trigger
+  const handleDeleteSession = async (e: React.MouseEvent, sid: string) => {
+    e.stopPropagation() // Prevent selecting the session when clicking delete
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) return
+    
+    if (!window.confirm("Are you sure you want to delete this chat session?")) {
+      return
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sid)}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        // Reload sessions list
+        await loadSessions()
+        
+        // If deleted session was active, start a new chat
+        if (sid === sessionId) {
+          handleNewChat()
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete session:", err)
+    }
+  }
+
   return (
     <div className="dashboard-layout">
       {/* 1. LEFT SIDEBAR PANEL */}
@@ -353,6 +483,49 @@ function App() {
         </div>
 
         <div className="sidebar-content">
+          {/* New Chat Button */}
+          <button className="sidebar-btn new-chat-btn" onClick={handleNewChat}>
+            <Plus size={16} /> New Chat
+          </button>
+
+          {/* Session List */}
+          {sessions.length > 0 && (
+            <div className="sidebar-section">
+              <span className="sidebar-title">Recent Chats</span>
+              <div className="sidebar-button-group">
+                {sessions.map(sid => (
+                  <div
+                    key={sid}
+                    className={`session-item-row ${sid === sessionId ? 'active' : ''}`}
+                    onClick={() => handleSelectSession(sid)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleSelectSession(sid)
+                      }
+                    }}
+                    title={sid}
+                  >
+                    <div className="session-item-left">
+                      <MessageSquare size={14} style={{ flexShrink: 0 }} />
+                      <span className="session-item-text">
+                        {sid.length > 18 ? sid.substring(0, 15) + '...' : sid}
+                      </span>
+                    </div>
+                    <button
+                      className="session-delete-btn"
+                      onClick={(e) => handleDeleteSession(e, sid)}
+                      title="Delete Chat"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="sidebar-section">
             <span className="sidebar-title">Suggested Prompts</span>
             <button className="sidebar-btn" onClick={() => handleSuggestionClick("Show top 5 products by revenue.")}>
@@ -402,22 +575,22 @@ function App() {
               </p>
 
               <div className="suggest-grid">
-                <div className="suggest-card" onClick={() => handleSuggestionClick("Show top 5 products by revenue.")}>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("Show top 5 products by revenue.")}>
                   <div className="suggest-card-title">Top 5 Products</div>
                   <div className="suggest-card-desc">Calculates product revenues and lists top performers.</div>
-                </div>
-                <div className="suggest-card" onClick={() => handleSuggestionClick("Why did sales decrease in March?")}>
+                </button>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("Why did sales decrease in March?")}>
                   <div className="suggest-card-title">Analyze Sales Drop</div>
                   <div className="suggest-card-desc">Correlates database trends with March logistical events.</div>
-                </div>
-                <div className="suggest-card" onClick={() => handleSuggestionClick("What is the inventory turnover ratio?")}>
+                </button>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("What is the inventory turnover ratio?")}>
                   <div className="suggest-card-title">Inventory Turnover</div>
                   <div className="suggest-card-desc">Calculates COGS / Average Inventory from historical records.</div>
-                </div>
-                <div className="suggest-card" onClick={() => handleSuggestionClick("Summarize the inventory management SOP.")}>
+                </button>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("Summarize the inventory management SOP.")}>
                   <div className="suggest-card-title">Summarize SOP</div>
                   <div className="suggest-card-desc">Retrieves and lists cycle counts and reorder guidelines.</div>
-                </div>
+                </button>
               </div>
             </div>
           ) : (

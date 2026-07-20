@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, Numeric, Date, DateTime, ForeignKey, Text
+import datetime
+from sqlalchemy import Column, String, Integer, Numeric, Date, DateTime, ForeignKey, Text, JSON, Boolean
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.database import Base
@@ -232,3 +233,28 @@ class DocumentChunk(Base):
     content = Column(Text, nullable=False)
     # Storing embeddings using pgvector's Vector type
     embedding = Column(Vector(384), nullable=False)
+
+
+# =====================================================================
+# CHAT MESSAGE MODEL (FOR PERSISTENT MEMORY)
+# =====================================================================
+class ChatMessage(Base):
+    """
+    SQLAlchemy model representing a single message in a chat conversation.
+    Stores the full response payload (SQL, sources, caching status) to support
+    rich reloading on the frontend.
+    """
+    __tablename__ = 'chat_messages'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(50), nullable=False, index=True)
+    sender = Column(String(10), nullable=False)  # 'user' or 'agent'
+    text = Column(Text, nullable=False)
+    intent = Column(String(50), nullable=True)
+    sql_generated = Column(Text, nullable=True)
+    sql_results = Column(JSON, nullable=True)
+    sources = Column(JSON, nullable=True)
+    latency_seconds = Column(Numeric(10, 4), nullable=True)
+    cached = Column(Boolean, nullable=True)
+    status = Column(String(20), nullable=True)
+    timestamp = Column(DateTime, nullable=False, default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None))

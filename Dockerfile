@@ -45,7 +45,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
 # Copy application files
-COPY --chown=appuser:appgroup . .
+COPY --chown=appuser:appgroup app/ /workspace/app/
+COPY --chown=appuser:appgroup scripts/ /workspace/scripts/
+COPY --chown=appuser:appgroup alembic/ /workspace/alembic/
+COPY --chown=appuser:appgroup alembic.ini /workspace/alembic.ini
 
 # Ensure data directory exists and is writable by appuser
 RUN mkdir -p /workspace/data && chown -R appuser:appgroup /workspace/data
