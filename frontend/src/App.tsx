@@ -26,6 +26,18 @@ import {
 } from 'recharts'
 import './App.css'
 
+const generateSessionId = (): string => {
+  if (typeof window !== 'undefined' && window.crypto) {
+    if (window.crypto.randomUUID) {
+      return window.crypto.randomUUID()
+    }
+    const array = new Uint32Array(4)
+    window.crypto.getRandomValues(array)
+    return 'sess-' + Array.from(array, dec => dec.toString(36)).join('').substring(0, 16)
+  }
+  return 'sess-' + Date.now().toString(36) + '-' + Math.floor(Date.now() * 1000).toString(36)
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // =====================================================================
@@ -285,8 +297,8 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [sessionId, setSessionId] = useState<string>(() => {
     const sid = localStorage.getItem('ai_analyst_session_id')
-    if (!sid) {
-      const newSid = window.crypto.randomUUID ? window.crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2, 11)
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) {
+      const newSid = generateSessionId()
       localStorage.setItem('ai_analyst_session_id', newSid)
       return newSid
     }
@@ -296,8 +308,12 @@ function App() {
   const scrollerRef = useRef<HTMLDivElement>(null)
 
   const loadSessionMessages = async (sid: string) => {
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) {
+      console.error("Invalid session ID format")
+      return
+    }
     try {
-      const response = await fetch(`${API_BASE_URL}/sessions/${sid}/messages`)
+      const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sid)}/messages`)
       if (response.ok) {
         const data = await response.json()
         const formattedMessages = data.messages.map((m: ApiMessage) => ({
@@ -411,7 +427,7 @@ function App() {
 
   // New Chat session trigger
   const handleNewChat = () => {
-    const sid = window.crypto.randomUUID ? window.crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2, 11)
+    const sid = generateSessionId()
     localStorage.setItem('ai_analyst_session_id', sid)
     setSessionId(sid)
     setMessages([])
@@ -419,6 +435,7 @@ function App() {
 
   // Switch session trigger
   const handleSelectSession = (sid: string) => {
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) return
     localStorage.setItem('ai_analyst_session_id', sid)
     setSessionId(sid)
   }
@@ -426,13 +443,14 @@ function App() {
   // Delete session history trigger
   const handleDeleteSession = async (e: React.MouseEvent, sid: string) => {
     e.stopPropagation() // Prevent selecting the session when clicking delete
+    if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) return
     
     if (!window.confirm("Are you sure you want to delete this chat session?")) {
       return
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/sessions/${sid}`, {
+      const response = await fetch(`${API_BASE_URL}/sessions/${encodeURIComponent(sid)}`, {
         method: 'DELETE'
       })
       
@@ -480,6 +498,13 @@ function App() {
                     key={sid}
                     className={`session-item-row ${sid === sessionId ? 'active' : ''}`}
                     onClick={() => handleSelectSession(sid)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleSelectSession(sid)
+                      }
+                    }}
                     title={sid}
                   >
                     <div className="session-item-left">
