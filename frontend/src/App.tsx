@@ -51,6 +51,19 @@ interface Message {
   status?: string
 }
 
+interface ApiMessage {
+  id: number
+  sender: string
+  text: string
+  intent?: string
+  sql_generated?: string | null
+  sql_results?: Record<string, unknown>[] | null
+  sources?: Source[] | null
+  latency_seconds?: number
+  cached?: boolean
+  status?: string
+}
+
 // =====================================================================
 // SQL RESULTS WIDGET COMPONENT
 // =====================================================================
@@ -270,26 +283,24 @@ function App() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [sessionId, setSessionId] = useState<string>('')
+  const [sessionId, setSessionId] = useState<string>(() => {
+    const sid = localStorage.getItem('ai_analyst_session_id')
+    if (!sid) {
+      const newSid = window.crypto.randomUUID ? window.crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2, 11)
+      localStorage.setItem('ai_analyst_session_id', newSid)
+      return newSid
+    }
+    return sid
+  })
   const [sessions, setSessions] = useState<string[]>([])
   const scrollerRef = useRef<HTMLDivElement>(null)
-
-  // Load or generate session ID on mount
-  useEffect(() => {
-    let sid = localStorage.getItem('ai_analyst_session_id')
-    if (!sid) {
-      sid = window.crypto.randomUUID ? window.crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2, 11)
-      localStorage.setItem('ai_analyst_session_id', sid)
-    }
-    setSessionId(sid)
-  }, [])
 
   const loadSessionMessages = async (sid: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/sessions/${sid}/messages`)
       if (response.ok) {
         const data = await response.json()
-        const formattedMessages = data.messages.map((m: any) => ({
+        const formattedMessages = data.messages.map((m: ApiMessage) => ({
           id: `msg-${m.id}`,
           sender: m.sender as 'user' | 'agent',
           text: m.text,
