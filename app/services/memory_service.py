@@ -57,7 +57,7 @@ class ChatMemoryService:
                 latency_seconds=latency_seconds,
                 cached=cached,
                 status=status,
-                timestamp=datetime.datetime.utcnow()
+                timestamp=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
             )
             db.add(msg)
             db.commit()

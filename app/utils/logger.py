@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 # Configure standard console logger
@@ -37,7 +37,7 @@ class ObservabilityLogger:
     ):
         # Format the log record
         log_record = {
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y-%m-%d %H:%M:%S'),
             "user_query": user_query,
             "detected_intent": detected_intent,
             "selected_tools": selected_tools,

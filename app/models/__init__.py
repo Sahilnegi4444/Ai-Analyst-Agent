@@ -257,4 +257,4 @@ class ChatMessage(Base):
     latency_seconds = Column(Numeric(10, 4), nullable=True)
     cached = Column(Boolean, nullable=True)
     status = Column(String(20), nullable=True)
-    timestamp = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    timestamp = Column(DateTime, nullable=False, default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None))
