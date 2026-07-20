@@ -69,7 +69,7 @@ class ObservabilityLogger:
                 os.makedirs(os.path.dirname(cls.LOG_FILE), exist_ok=True)
                 with open(cls.LOG_FILE, "a", encoding="utf-8") as f:
                     f.write(json.dumps(log_record) + "\n")
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to write observability log")
         else:
             # Stream JSON-lines directly to stdout for production log aggregation
