@@ -358,6 +358,9 @@
   flex-direction: column;
   gap: 6px;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
 }
 
 .suggest-card:hover {

@@ -550,22 +550,22 @@ function App() {
               </p>
 
               <div className="suggest-grid">
-                <div className="suggest-card" onClick={() => handleSuggestionClick("Show top 5 products by revenue.")}>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("Show top 5 products by revenue.")}>
                   <div className="suggest-card-title">Top 5 Products</div>
                   <div className="suggest-card-desc">Calculates product revenues and lists top performers.</div>
-                </div>
-                <div className="suggest-card" onClick={() => handleSuggestionClick("Why did sales decrease in March?")}>
+                </button>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("Why did sales decrease in March?")}>
                   <div className="suggest-card-title">Analyze Sales Drop</div>
                   <div className="suggest-card-desc">Correlates database trends with March logistical events.</div>
-                </div>
-                <div className="suggest-card" onClick={() => handleSuggestionClick("What is the inventory turnover ratio?")}>
+                </button>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("What is the inventory turnover ratio?")}>
                   <div className="suggest-card-title">Inventory Turnover</div>
                   <div className="suggest-card-desc">Calculates COGS / Average Inventory from historical records.</div>
-                </div>
-                <div className="suggest-card" onClick={() => handleSuggestionClick("Summarize the inventory management SOP.")}>
+                </button>
+                <button className="suggest-card" onClick={() => handleSuggestionClick("Summarize the inventory management SOP.")}>
                   <div className="suggest-card-title">Summarize SOP</div>
                   <div className="suggest-card-desc">Retrieves and lists cycle counts and reorder guidelines.</div>
-                </div>
+                </button>
               </div>
             </div>
           ) : (

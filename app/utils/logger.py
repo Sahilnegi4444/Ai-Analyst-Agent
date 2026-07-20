@@ -70,7 +70,7 @@ class ObservabilityLogger:
                 with open(cls.LOG_FILE, "a", encoding="utf-8") as f:
                     f.write(json.dumps(log_record) + "\n")
             except Exception as e:
-                logger.error(f"Failed to write observability log: {e}")
+                logger.exception("Failed to write observability log")
         else:
             # Stream JSON-lines directly to stdout for production log aggregation
             print(f"[OBSERVABILITY RUN LOG] {json.dumps(log_record)}")
