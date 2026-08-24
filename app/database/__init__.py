@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
 from app.config import settings
 
 # #####################################################################
@@ -7,7 +8,7 @@ from app.config import settings
 # #####################################################################
 # pool_pre_ping checks the connection health before yielding a session
 engine = create_engine(
-    settings.DATABASE_URL, 
+    settings.DATABASE_URL,
     pool_pre_ping=True,
     pool_size=2,
     max_overflow=0

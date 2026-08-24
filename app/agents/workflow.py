@@ -1,17 +1,19 @@
-import time
 import json
-from typing import TypedDict, List, Dict, Any, Optional
-from langgraph.graph import StateGraph, START, END
-from groq import Groq
+import time
+from typing import Any, TypedDict
 
+from groq import Groq
+from langgraph.graph import END, START, StateGraph
+
+from app.agents.router import IntentRouter
 from app.config import settings
 from app.database import SessionLocal
-from app.agents.router import IntentRouter
-from app.tools.sql_tool import SQLTool
-from app.tools.rag_tool import RAGTool
-from app.tools.analytics_tool import AnalyticsTool
-from app.utils.logger import ObservabilityLogger
 from app.services.result_summarizer import ResultSummarizer
+from app.tools.analytics_tool import AnalyticsTool
+from app.tools.rag_tool import RAGTool
+from app.tools.sql_tool import SQLTool
+from app.utils.logger import ObservabilityLogger
+
 
 # =====================================================================
 # LANGGRAPH STATE DEFINITION
@@ -22,16 +24,16 @@ class AgentState(TypedDict):
     Includes token counts and detailed performance metrics.
     """
     query: str
-    intent: Dict[str, Any]
-    plan: Dict[str, Any]
-    sql_query: Optional[str]
-    sql_results: Optional[List[Dict[str, Any]]]
-    sql_error: Optional[str]
-    rag_chunks: Optional[List[Dict[str, Any]]]
-    analytics_results: Optional[Dict[str, Any]]
+    intent: dict[str, Any]
+    plan: dict[str, Any]
+    sql_query: str | None
+    sql_results: list[dict[str, Any]] | None
+    sql_error: str | None
+    rag_chunks: list[dict[str, Any]] | None
+    analytics_results: dict[str, Any] | None
     final_response: str
     status: str  # 'success', 'insufficient_data', 'unsupported_query', 'error'
-    selected_tools: List[str]
+    selected_tools: list[str]
     start_time: float
     latency: float
     # Extended metrics
@@ -49,10 +51,10 @@ def intent_node(state: AgentState) -> AgentState:
     """Classifies the incoming user query into an intent category."""
     router = IntentRouter()
     intent_res = router.route_intent(state["query"])
-    
+
     prompt_tokens = state.get("prompt_tokens", 0) + intent_res.get("prompt_tokens", 0)
     completion_tokens = state.get("completion_tokens", 0) + intent_res.get("completion_tokens", 0)
-    
+
     return {
         **state,
         "intent": intent_res,
@@ -64,13 +66,13 @@ def planner_node(state: AgentState) -> AgentState:
     """Evaluates the classified intent and designs a tool routing plan."""
     intent_data = state["intent"]
     intent_type = intent_data.get("intent", "UNSUPPORTED_QUERY")
-    
+
     plan = {
         "needs_sql": intent_data.get("needs_sql", False),
         "needs_rag": intent_data.get("needs_rag", False),
         "needs_analytics": (intent_type == "ANALYTICS_QUERY" or intent_type == "HYBRID_QUERY")
     }
-    
+
     return {
         **state,
         "plan": plan
@@ -82,15 +84,15 @@ def sql_node(state: AgentState) -> AgentState:
     db = SessionLocal()
     selected_tools = list(state["selected_tools"])
     selected_tools.append("sql_tool")
-    
+
     try:
         sql_tool = SQLTool(db)
         res = sql_tool.execute_query(state["query"])
-        
+
         sql_latency = time.time() - sql_start
         prompt_tokens = state.get("prompt_tokens", 0) + res.get("prompt_tokens", 0)
         completion_tokens = state.get("completion_tokens", 0) + res.get("completion_tokens", 0)
-        
+
         return {
             **state,
             "sql_query": res.get("sql_query"),
@@ -110,31 +112,31 @@ def rag_node(state: AgentState) -> AgentState:
     db = SessionLocal()
     selected_tools = list(state["selected_tools"])
     selected_tools.append("rag_tool")
-    
+
     try:
         # Extract entities from SQL results to enrich subsequent RAG search context
         entities = []
         if state.get("sql_results"):
             for row in state["sql_results"][:5]:  # Process up to top 5 rows
                 for col in ["product_name", "category", "supplier_name", "segment", "name"]:
-                    if col in row and row[col]:
+                    if row.get(col):
                         val = str(row[col]).strip()
                         if val and val not in entities:
                             entities.append(val)
-        
+
         # Enrich the RAG query with the SQL context
         rag_query = state["query"]
         if entities:
             rag_query += f" (related context: {', '.join(entities)})"
             print(f"[CONTEXT ENRICHMENT] Enriched RAG query: '{rag_query}'")
-            
+
         rag_tool = RAGTool(db)
         res = rag_tool.retrieve_context(rag_query, top_k=3)
-        
+
         retrieval_latency = time.time() - rag_start
         prompt_tokens = state.get("prompt_tokens", 0) + res.get("prompt_tokens", 0)
         completion_tokens = state.get("completion_tokens", 0) + res.get("completion_tokens", 0)
-        
+
         return {
             **state,
             "rag_chunks": res.get("chunks", []),
@@ -152,21 +154,21 @@ def analytics_node(state: AgentState) -> AgentState:
     selected_tools = list(state["selected_tools"])
     selected_tools.append("analytics_tool")
     analytics_tool = AnalyticsTool()
-    
+
     query_lower = state["query"].lower()
     results = {}
-    
+
     # Intelligently invoke targeted Pandas service calls based on keywords
     if "turnover" in query_lower:
         res = analytics_tool.execute_analytics("inventory_turnover")
         if res.get("status") == "success":
             results.update(res["results"])
-            
+
     if "growth" in query_lower or "rate" in query_lower or "mom" in query_lower:
         res = analytics_tool.execute_analytics("mom_growth")
         if res.get("status") == "success":
             results["mom_growth_rates"] = res["results"]
-            
+
     if "compare" in query_lower or "sales" in query_lower or "revenue" in query_lower or "aov" in query_lower:
         # Load standard monthly distribution or overall summary
         res_dist = analytics_tool.execute_analytics("monthly_sales")
@@ -175,12 +177,12 @@ def analytics_node(state: AgentState) -> AgentState:
             results["monthly_sales_distribution"] = res_dist["results"]
         if res_sum.get("status") == "success":
             results["sales_summary_kpis"] = res_sum["results"]
-            
+
     if "inventory" in query_lower or "stock" in query_lower or "warehouse" in query_lower:
         res_inv = analytics_tool.execute_analytics("inventory_summary")
         if res_inv.get("status") == "success":
             results["inventory_summary_kpis"] = res_inv["results"]
-            
+
     # Default fallback: load sales and inventory summaries if empty
     if not results:
         res_sum = analytics_tool.execute_analytics("sales_summary")
@@ -202,7 +204,7 @@ def generator_node(state: AgentState) -> AgentState:
     """Synthesizes the final answer using Groq, enforcing data-integrity guardrails."""
     # Compute latency
     latency = time.time() - state["start_time"]
-    
+
     intent_type = state["intent"].get("intent", "UNSUPPORTED_QUERY")
     if intent_type == "SECURITY_VIOLATION":
         return {
@@ -239,28 +241,26 @@ def generator_node(state: AgentState) -> AgentState:
     has_rag_data = bool(state["plan"]["needs_rag"] and state["rag_chunks"])
 
     # If SQL was required but we have no SQL data AND we don't have RAG data to compensate:
-    if state["plan"]["needs_sql"] and not has_sql_data:
-        if not has_rag_data:
-            return {
-                **state,
-                "final_response": insufficient_response,
-                "status": "insufficient_data",
-                "latency": round(latency, 4)
-            }
+    if state["plan"]["needs_sql"] and not has_sql_data and not has_rag_data:
+        return {
+            **state,
+            "final_response": insufficient_response,
+            "status": "insufficient_data",
+            "latency": round(latency, 4)
+        }
 
     # If RAG was required but we have no RAG data AND we don't have SQL data to compensate:
-    if state["plan"]["needs_rag"] and not has_rag_data:
-        if not has_sql_data:
-            return {
-                **state,
-                "final_response": insufficient_response,
-                "status": "insufficient_data",
-                "latency": round(latency, 4)
-            }
+    if state["plan"]["needs_rag"] and not has_rag_data and not has_sql_data:
+        return {
+            **state,
+            "final_response": insufficient_response,
+            "status": "insufficient_data",
+            "latency": round(latency, 4)
+        }
 
     # Generate synthesis prompt
     client = Groq(api_key=settings.GROQ_API_KEY)
-    
+
     system_prompt = (
         "You are a Senior Business Intelligence and Data Analyst Agent.\n"
         "Your task is to synthesize a professional, concise business response to the user's query.\n"
@@ -280,11 +280,11 @@ def generator_node(state: AgentState) -> AgentState:
     )
 
     context = f"User Question: \"{state['query']}\"\n\n"
-    
+
     # 2. Inject compressed or raw SQL results
     if state["sql_query"]:
         results = state["sql_results"] or []
-        
+
         # Decide if we can compress the SQL dataset
         if ResultSummarizer.should_keep_raw(state["query"], len(results)):
             # User wants row-level details explicitly
@@ -297,7 +297,7 @@ def generator_node(state: AgentState) -> AgentState:
             # Compress results to save tokens
             summary = ResultSummarizer.summarize(results, state["query"])
             context += f"--- SQL Database Context (Summarized to save tokens) ---\nQuery: {state['sql_query']}\nResults Summary:\n{json.dumps(summary, indent=2)}\n\n"
-        
+
     if state["rag_chunks"]:
         formatted_rag = []
         for idx, chunk in enumerate(state["rag_chunks"], 1):
@@ -307,7 +307,7 @@ def generator_node(state: AgentState) -> AgentState:
                 f"Content: {chunk['content']}"
             )
         context += "--- Document RAG Context ---\n" + "\n\n".join(formatted_rag) + "\n\n"
-        
+
     if state["analytics_results"]:
         context += f"--- Pandas Analytics Calculations Context ---\n{json.dumps(state['analytics_results'], indent=2)}\n\n"
 
@@ -320,17 +320,17 @@ def generator_node(state: AgentState) -> AgentState:
             model=settings.GROQ_GENERATOR_MODEL,
             temperature=0.0
         )
-        
+
         final_answer = response.choices[0].message.content.strip()
-        
+
         # Check if the model decided to emit insufficient_data JSON
         status = "success"
         if "insufficient_data" in final_answer:
             status = "insufficient_data"
-            
+
         prompt_tokens = state.get("prompt_tokens", 0) + response.usage.prompt_tokens
         completion_tokens = state.get("completion_tokens", 0) + response.usage.completion_tokens
-            
+
         return {
             **state,
             "final_response": final_answer,
@@ -392,7 +392,7 @@ def route_after_rag(state: AgentState) -> str:
 
 def create_agent_workflow():
     workflow = StateGraph(AgentState)
-    
+
     # Add nodes
     workflow.add_node("intent_node", intent_node)
     workflow.add_node("planner_node", planner_node)
@@ -400,11 +400,11 @@ def create_agent_workflow():
     workflow.add_node("rag_node", rag_node)
     workflow.add_node("analytics_node", analytics_node)
     workflow.add_node("generator_node", generator_node)
-    
+
     # Establish edges (conditional edges skip unused nodes entirely)
     workflow.add_edge(START, "intent_node")
     workflow.add_edge("intent_node", "planner_node")
-    
+
     workflow.add_conditional_edges(
         "planner_node",
         route_after_planner,
@@ -415,7 +415,7 @@ def create_agent_workflow():
             "generator_node": "generator_node"
         }
     )
-    
+
     workflow.add_conditional_edges(
         "sql_node",
         route_after_sql,
@@ -425,7 +425,7 @@ def create_agent_workflow():
             "generator_node": "generator_node"
         }
     )
-    
+
     workflow.add_conditional_edges(
         "rag_node",
         route_after_rag,
@@ -434,10 +434,10 @@ def create_agent_workflow():
             "generator_node": "generator_node"
         }
     )
-    
+
     workflow.add_edge("analytics_node", "generator_node")
     workflow.add_edge("generator_node", END)
-    
+
     return workflow.compile()
 
 # Compile the graph singleton
@@ -452,9 +452,9 @@ class AgentExecutor:
     def run(query: str) -> dict:
         from app.services.cache_service import RedisCacheService
         cache_service = RedisCacheService()
-        
+
         start_time = time.time()
-        
+
         # 1. Try fetching from Redis Cache
         cached_res = cache_service.get_cached_query(query)
         if cached_res is not None:
@@ -462,7 +462,7 @@ class AgentExecutor:
             cached_res["start_time"] = start_time
             cached_res["latency"] = round(latency, 4)
             cached_res["cached"] = True
-            
+
             # Log cached run
             ObservabilityLogger.log_agent_run(
                 user_query=cached_res["query"],
@@ -477,7 +477,7 @@ class AgentExecutor:
                 completion_tokens=cached_res.get("completion_tokens", 0)
             )
             return cached_res
-            
+
         # 2. Cache Miss: Run full LangGraph agent workflow
         initial_state: AgentState = {
             "query": query,
@@ -500,14 +500,14 @@ class AgentExecutor:
             "retrieval_latency": 0.0,
             "analytics_latency": 0.0
         }
-        
+
         final_state = agent_app.invoke(initial_state)
-        
+
         # Compute execution latency
         latency = time.time() - start_time
         final_state["latency"] = round(latency, 4)
         final_state["cached"] = False
-        
+
         # Log to observability logger
         ObservabilityLogger.log_agent_run(
             user_query=final_state["query"],
@@ -524,9 +524,9 @@ class AgentExecutor:
             retrieval_latency=final_state.get("retrieval_latency", 0.0),
             analytics_latency=final_state.get("analytics_latency", 0.0)
         )
-        
+
         # 3. Store new response state in Redis Cache if successful or expected status
         if final_state.get("status") in ["success", "unsupported_query", "security_violation"]:
             cache_service.set_cached_query(query, final_state)
-        
+
         return final_state

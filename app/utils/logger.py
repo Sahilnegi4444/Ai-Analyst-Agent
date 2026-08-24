@@ -1,8 +1,7 @@
-import os
 import json
 import logging
+import os
 from datetime import datetime, timezone
-from typing import List, Optional
 
 # Configure standard console logger
 logging.basicConfig(
@@ -23,10 +22,10 @@ class ObservabilityLogger:
         cls,
         user_query: str,
         detected_intent: str,
-        selected_tools: List[str],
-        generated_sql: Optional[str],
+        selected_tools: list[str],
+        generated_sql: str | None,
         execution_status: str,
-        retrieval_results: Optional[List[dict]],
+        retrieval_results: list[dict] | None,
         latency: float,
         cached: bool = False,
         prompt_tokens: int = 0,

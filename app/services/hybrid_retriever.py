@@ -1,19 +1,20 @@
-import re
 import math
+import re
+
 import numpy as np
-from typing import List, Tuple
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import DocumentChunk
 from app.services.embedding import EmbeddingService
-from app.config import settings
+
 
 class SimpleBM25:
     """
     Pure Python, lightweight BM25 implementation for indexing document chunks
     and computing relevance scores for keyword queries.
     """
-    def __init__(self, corpus: List[Tuple[int, List[str]]], k1: float = 1.5, b: float = 0.75):
+    def __init__(self, corpus: list[tuple[int, list[str]]], k1: float = 1.5, b: float = 0.75):
         self.k1 = k1
         self.b = b
         self.corpus_size = len(corpus)
@@ -21,7 +22,7 @@ class SimpleBM25:
         self.doc_freqs = {}
         self.doc_lens = {}
         self.df = {}
-        
+
         # Calculate term frequencies and document frequencies
         for doc_id, tokens in corpus:
             self.doc_lens[doc_id] = len(tokens)
@@ -31,14 +32,14 @@ class SimpleBM25:
             self.doc_freqs[doc_id] = freqs
             for word in freqs:
                 self.df[word] = self.df.get(word, 0) + 1
-                
+
         # Calculate IDF values
         self.idf = {}
         for word, freq in self.df.items():
             # BM25 IDF formula
             self.idf[word] = math.log((self.corpus_size - freq + 0.5) / (freq + 0.5) + 1.0)
 
-    def score(self, query: List[str]) -> List[Tuple[int, float]]:
+    def score(self, query: list[str]) -> list[tuple[int, float]]:
         scores = []
         for doc_id, freqs in self.doc_freqs.items():
             doc_len = self.doc_lens[doc_id]
@@ -67,11 +68,11 @@ class HybridRetriever:
         else:
             print("Reranker is disabled via configuration.")
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         # Regex tokenization
         return re.findall(r'\w+', text.lower())
 
-    def retrieve(self, query: str, top_k: int = 3) -> List[Tuple[DocumentChunk, float]]:
+    def retrieve(self, query: str, top_k: int = 3) -> list[tuple[DocumentChunk, float]]:
         """
         Executes hybrid search retrieval flow and returns Top K chunks with confidence scores.
         """
@@ -142,11 +143,11 @@ class HybridRetriever:
         # 5. Score Fusion via Reciprocal Rank Fusion (RRF)
         rrf_scores = {}
         k = 60
-        
+
         # Rank scores for vector search
         for rank, chunk in enumerate(vector_candidates, 1):
             rrf_scores[chunk.id] = rrf_scores.get(chunk.id, 0.0) + (1.0 / (k + rank))
-            
+
         # Rank scores for BM25 search
         for rank, chunk in enumerate(bm25_candidates, 1):
             rrf_scores[chunk.id] = rrf_scores.get(chunk.id, 0.0) + (1.0 / (k + rank))
@@ -168,7 +169,7 @@ class HybridRetriever:
             # Rerank candidates
             doc_contents = [c.content for c in fused_chunks]
             scores = self.reranker.rerank(query, doc_contents)
-            
+
             # Pair candidate chunks with their relevance scores and apply sorting boosts
             chunk_scores = []
             for chunk, score in zip(fused_chunks, scores):
@@ -178,11 +179,11 @@ class HybridRetriever:
                 if chunk in filename_matches:
                     boosted_score += 10.0
                 chunk_scores.append((chunk, boosted_score, score))
-            
+
             # Sort by boosted score descending
             scored_chunks = sorted(chunk_scores, key=lambda x: x[1], reverse=True)
             top_scored = scored_chunks[:top_k]
-            
+
             # Retrieve final scores (which are already normalized in [0, 1] by the providers)
             results = []
             for chunk, _, score in top_scored:

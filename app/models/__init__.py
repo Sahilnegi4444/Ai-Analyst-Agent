@@ -1,8 +1,22 @@
 import datetime
-from sqlalchemy import Column, String, Integer, Numeric, Date, DateTime, ForeignKey, Text, JSON, Boolean
-from sqlalchemy.orm import relationship
+
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
+from sqlalchemy.orm import relationship
+
 from app.database import Base
+
 
 # =====================================================================
 # SUPPLIER MODEL

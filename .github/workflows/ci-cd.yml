@@ -27,7 +27,7 @@ jobs:
           pip install ruff
 
       - name: Run Ruff Linter
-        run: ruff check app/ tests/
+        run: ruff check --select E,F,W,I --ignore E501,E402,W293 app/ tests/
 
   lint-frontend:
     name: Lint Frontend (ESLint)

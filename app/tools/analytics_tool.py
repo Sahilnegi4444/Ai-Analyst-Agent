@@ -1,5 +1,7 @@
+from typing import Any
+
 from app.services.analytics_service import AnalyticsService
-from typing import Dict, Any
+
 
 class AnalyticsTool:
     """
@@ -9,7 +11,7 @@ class AnalyticsTool:
     def __init__(self):
         self.service = AnalyticsService()
 
-    def execute_analytics(self, calculation_type: str) -> Dict[str, Any]:
+    def execute_analytics(self, calculation_type: str) -> dict[str, Any]:
         """
         Executes a targeted Pandas mathematical computation.
         
@@ -43,7 +45,7 @@ class AnalyticsTool:
                     "error": f"Unknown calculation type '{calculation_type}'",
                     "results": None
                 }
-            
+
             return {
                 "status": "success",
                 "results": res,

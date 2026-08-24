@@ -1,10 +1,13 @@
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.repositories import DocumentRepository
+from app.services.cache_service import RedisCacheService
+from app.services.context_compressor import ContextCompressor
 from app.services.embedding import EmbeddingService
 from app.services.hybrid_retriever import HybridRetriever
-from app.services.context_compressor import ContextCompressor
-from app.services.cache_service import RedisCacheService
-from typing import List, Dict, Any
+
 
 class RAGTool:
     """
@@ -16,14 +19,14 @@ class RAGTool:
         self.doc_repository = DocumentRepository(db)
         self.embedding_service = EmbeddingService()
 
-    def retrieve_context(self, query: str, top_k: int = 3) -> Dict[str, Any]:
+    def retrieve_context(self, query: str, top_k: int = 3) -> dict[str, Any]:
         """
         Retrieves context using hybrid search, reranking, and compression.
         Utilizes Redis to cache retrieved and compressed text.
         """
         try:
             cache_service = RedisCacheService()
-            
+
             # 1. Try to fetch from retrieval cache
             cached_results = cache_service.get_cached_retrieval(query)
             if cached_results is not None:
@@ -42,7 +45,7 @@ class RAGTool:
             # 3. Dynamic context compression with Llama model
             compressor = ContextCompressor()
             results = []
-            
+
             total_prompt_tokens = 0
             total_completion_tokens = 0
 
@@ -57,7 +60,7 @@ class RAGTool:
                     compressed_text = comp_res["compressed_text"]
                     total_prompt_tokens += comp_res.get("prompt_tokens", 0)
                     total_completion_tokens += comp_res.get("completion_tokens", 0)
-                    
+
                     # Cache compressed content
                     cache_service.set_cached_compressed(query, chunk.id, compressed_text)
 
@@ -88,12 +91,12 @@ class RAGTool:
                 "completion_tokens": 0,
                 "error": str(e)
             }
-        
-    def format_context_string(self, chunks: List[dict]) -> str:
+
+    def format_context_string(self, chunks: list[dict]) -> str:
         """Formats compressed RAG chunks into a single text block for the LLM prompt."""
         if not chunks:
             return "No relevant documentation found."
-            
+
         formatted_blocks = []
         for idx, c in enumerate(chunks, 1):
             block = (

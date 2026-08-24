@@ -1,9 +1,11 @@
 import json
 import logging
+from typing import Any
+
 import redis
-from redis.retry import Retry
 from redis.backoff import ExponentialBackoff
-from typing import Optional, Dict, Any, List
+from redis.retry import Retry
+
 from app.config import settings
 
 logger = logging.getLogger("AiDataAnalyst")
@@ -19,7 +21,7 @@ class RedisCacheService:
     def __new__(cls, *args, **kwargs):
         # Singleton pattern to prevent multiple client pool allocations
         if not cls._instance:
-            cls._instance = super(RedisCacheService, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super().__new__(cls, *args, **kwargs)
             cls._instance._init_redis()
         return cls._instance
 
@@ -29,14 +31,14 @@ class RedisCacheService:
         self.memory_cache = {}
         try:
             logger.info(f"Connecting to Redis at: {settings.REDIS_URL}...")
-            
+
             # Configure exponential backoff retries (3 attempts: 0.1s, 0.2s, 0.4s)
             retry_strategy = Retry(ExponentialBackoff(cap=2.0, base=0.1), 3)
-            
+
             # Set decode_responses=True to return strings instead of bytes.
             # Support SSL (rediss://) natively and enforce timeout thresholds.
             self.client = redis.from_url(
-                settings.REDIS_URL, 
+                settings.REDIS_URL,
                 decode_responses=True,
                 socket_connect_timeout=3.0,
                 socket_timeout=3.0,
@@ -73,7 +75,7 @@ class RedisCacheService:
         """Trims whitespace and lowercases the query string for uniform caching."""
         return query.strip().lower()
 
-    def get_cached_query(self, query: str) -> Optional[Dict[str, Any]]:
+    def get_cached_query(self, query: str) -> dict[str, Any] | None:
         """
         Retrieves cached agent state payload for a given query key.
         Returns None on cache miss or when Redis and fallback are disabled.
@@ -91,31 +93,31 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[CACHE ERROR] Failed to retrieve key from Redis: {e}")
-        
+
         if self.memory_fallback:
             if cache_key in self.memory_cache:
                 logger.info(f"[CACHE HIT] Serving cached response from in-memory cache for key: {cache_key}")
                 # Return a deep-copied JSON state to prevent mutations from altering the cache
                 return json.loads(json.dumps(self.memory_cache[cache_key]))
-        
+
         return None
 
-    def set_cached_query(self, query: str, state_data: Dict[str, Any], ttl: Optional[int] = None) -> None:
+    def set_cached_query(self, query: str, state_data: dict[str, Any], ttl: int | None = None) -> None:
         """
         Stores an agent state payload under a query key in Redis or in-memory fallback.
         """
         normalized = self._normalize_query(query)
         cache_key = f"cache:query:{normalized}"
-        
+
         # Strip internal temporary metrics from state before saving (like run start time)
         save_state = {k: v for k, v in state_data.items() if k not in ["start_time", "latency"]}
-        
+
         if self.enabled:
             cache_ttl = ttl if ttl is not None else settings.REDIS_CACHE_TTL
             try:
                 self.client.set(
-                    cache_key, 
-                    json.dumps(save_state), 
+                    cache_key,
+                    json.dumps(save_state),
                     ex=cache_ttl
                 )
                 logger.info(f"[CACHE SET] Response cached in Redis for key: {cache_key} with TTL: {cache_ttl}s")
@@ -124,7 +126,7 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[CACHE ERROR] Failed to save key to Redis: {e}")
-        
+
         if self.memory_fallback:
             self.memory_cache[cache_key] = save_state
             logger.info(f"[CACHE SET] Response cached in-memory for key: {cache_key}")
@@ -134,7 +136,7 @@ class RedisCacheService:
         import hashlib
         return hashlib.sha256(query.strip().lower().encode('utf-8')).hexdigest()
 
-    def get_cached_sql(self, query: str) -> Optional[str]:
+    def get_cached_sql(self, query: str) -> str | None:
         """Retrieves cached SQL statement for a query."""
         h = self._hash_query(query)
         cache_key = f"cache:sql:{h}"
@@ -148,7 +150,7 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[SQL CACHE ERROR] Failed to retrieve SQL key from Redis: {e}")
-        
+
         if self.memory_fallback:
             if cache_key in self.memory_cache:
                 logger.info(f"[SQL CACHE HIT] Serving cached SQL query from in-memory for key: {cache_key}")
@@ -168,12 +170,12 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[SQL CACHE ERROR] Failed to save SQL to Redis: {e}")
-        
+
         if self.memory_fallback:
             self.memory_cache[cache_key] = sql
             logger.info(f"[SQL CACHE SET] Cached SQL in-memory for key: {cache_key}")
 
-    def get_cached_retrieval(self, query: str) -> Optional[List[Dict[str, Any]]]:
+    def get_cached_retrieval(self, query: str) -> list[dict[str, Any]] | None:
         """Retrieves cached RAG search chunks for a query."""
         h = self._hash_query(query)
         cache_key = f"cache:retrieval:{h}"
@@ -187,14 +189,14 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[RAG CACHE ERROR] Failed to retrieve RAG chunks from Redis: {e}")
-        
+
         if self.memory_fallback:
             if cache_key in self.memory_cache:
                 logger.info(f"[RAG CACHE HIT] Serving cached RAG chunks from in-memory for key: {cache_key}")
                 return json.loads(json.dumps(self.memory_cache[cache_key]))
         return None
 
-    def set_cached_retrieval(self, query: str, chunks: List[Dict[str, Any]], ttl: int = 43200) -> None:
+    def set_cached_retrieval(self, query: str, chunks: list[dict[str, Any]], ttl: int = 43200) -> None:
         """Caches RAG retrieval chunks (TTL = 12h default)."""
         h = self._hash_query(query)
         cache_key = f"cache:retrieval:{h}"
@@ -207,12 +209,12 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[RAG CACHE ERROR] Failed to save RAG chunks to Redis: {e}")
-        
+
         if self.memory_fallback:
             self.memory_cache[cache_key] = chunks
             logger.info(f"[RAG CACHE SET] Cached RAG chunks in-memory for key: {cache_key}")
 
-    def get_cached_compressed(self, query: str, chunk_id: int) -> Optional[str]:
+    def get_cached_compressed(self, query: str, chunk_id: int) -> str | None:
         """Retrieves compressed text for a chunk."""
         h = self._hash_query(query)
         cache_key = f"cache:compressed:{h}:{chunk_id}"
@@ -226,10 +228,9 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[COMPRESSED CACHE ERROR] Failed to retrieve from Redis: {e}")
-        
-        if self.memory_fallback:
-            if cache_key in self.memory_cache:
-                return self.memory_cache[cache_key]
+
+        if self.memory_fallback and cache_key in self.memory_cache:
+            return self.memory_cache[cache_key]
         return None
 
     def set_cached_compressed(self, query: str, chunk_id: int, compressed_text: str, ttl: int = 43200) -> None:
@@ -244,6 +245,6 @@ class RedisCacheService:
                 self._handle_redis_failure(e)
             except Exception as e:
                 logger.error(f"[COMPRESSED CACHE ERROR] Failed to save to Redis: {e}")
-        
+
         if self.memory_fallback:
             self.memory_cache[cache_key] = compressed_text

@@ -1,14 +1,14 @@
-import os
-import sys
 import json
-import time
-from typing import List
+import os
 import re
+import sys
+import time
 
 # Add workspace root to python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from app.agents.workflow import AgentExecutor
+
 
 class Evaluator:
     """
@@ -20,7 +20,7 @@ class Evaluator:
         self.dataset_path = dataset_path
         self.test_cases = self._load_dataset()
 
-    def _load_dataset(self) -> List[dict]:
+    def _load_dataset(self) -> list[dict]:
         if not os.path.exists(self.dataset_path):
             print(f"[ERROR] Evaluation dataset not found at {self.dataset_path}")
             return []
@@ -30,15 +30,15 @@ class Evaluator:
     def run_evaluations(self) -> dict:
         print(f"Starting evaluations on {len(self.test_cases)} benchmark queries...")
         results = []
-        
+
         for case in self.test_cases:
             print(f"\nEvaluating Case {case['id']}: '{case['query']}'")
             start_time = time.time()
-            
+
             # Invoke agent workflow
             agent_res = AgentExecutor.run(case["query"])
             latency = time.time() - start_time
-            
+
             # Extract outputs
             intent = agent_res.get("intent", {}).get("intent", "UNKNOWN")
             sql_query = agent_res.get("sql_query")
@@ -81,7 +81,7 @@ class Evaluator:
                 numbers_in_response = re.findall(r"\b\d+[\.,]?\d*\b", final_response)
                 # Filter out standard years/indices
                 numbers_in_response = [n for n in numbers_in_response if n not in ["2025", "1", "2", "3", "4", "5", "0"]]
-                
+
                 if numbers_in_response:
                     # Collect all ground truth numbers
                     ground_truth_str = ""
@@ -89,7 +89,7 @@ class Evaluator:
                         ground_truth_str += json.dumps(sql_results)
                     if agent_res.get("analytics_results"):
                         ground_truth_str += json.dumps(agent_res["analytics_results"])
-                        
+
                     unsupported_numbers = 0
                     for num in numbers_in_response:
                         clean_num = num.replace(",", "")
@@ -109,12 +109,12 @@ class Evaluator:
                 "hallucinated": hallucinated,
                 "latency": latency
             })
-            
+
             print(f"-> Intent Match: {intent == case['expected_intent']} | SQL Acc: {sql_acc:.2f} | RAG Acc: {retrieval_acc:.2f} | Answer Acc: {answer_acc:.2f} | Latency: {latency:.4f}s")
-            
+
         return self._summarize_report(results)
 
-    def _summarize_report(self, results: List[dict]) -> dict:
+    def _summarize_report(self, results: list[dict]) -> dict:
         total = len(results)
         if total == 0:
             return {}
@@ -137,7 +137,7 @@ class Evaluator:
         print(f"Detected Hallucination Rate : {avg_hallucination_rate:.2f}%")
         print(f"Average Invocation Latency  : {avg_latency:.4f} seconds")
         print("==============================================")
-        
+
         report = {
             "total_runs": total,
             "intent_accuracy": round(avg_intent_match, 2),
@@ -147,12 +147,12 @@ class Evaluator:
             "hallucination_rate": round(avg_hallucination_rate, 2),
             "average_latency_seconds": round(avg_latency, 4)
         }
-        
+
         # Save report
         os.makedirs("data", exist_ok=True)
         with open("data/evaluation_report.json", "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
-            
+
         return report
 
 if __name__ == '__main__':

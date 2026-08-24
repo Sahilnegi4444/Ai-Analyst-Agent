@@ -1,10 +1,20 @@
-from app.repositories.base import BaseRepository
-from app.models import (
-    Supplier, Product, Customer, MarketingCampaign, Inventory,
-    InventoryHistory, SalesRecord, ReturnRecord, WarehouseEvent, Review, DocumentChunk
-)
 from sqlalchemy.orm import Session
-from typing import List, Tuple
+
+from app.models import (
+    Customer,
+    DocumentChunk,
+    Inventory,
+    InventoryHistory,
+    MarketingCampaign,
+    Product,
+    ReturnRecord,
+    Review,
+    SalesRecord,
+    Supplier,
+    WarehouseEvent,
+)
+from app.repositories.base import BaseRepository
+
 
 # =====================================================================
 # SUPPLIER REPOSITORY
@@ -117,7 +127,7 @@ class DocumentRepository(BaseRepository[DocumentChunk]):
     def __init__(self, db: Session):
         super().__init__(DocumentChunk, db)
 
-    def search_similar(self, query_embedding: List[float], limit: int = 5) -> List[Tuple[DocumentChunk, float]]:
+    def search_similar(self, query_embedding: list[float], limit: int = 5) -> list[tuple[DocumentChunk, float]]:
         """
         Retrieves similar document chunks by executing a pgvector cosine distance search.
         
