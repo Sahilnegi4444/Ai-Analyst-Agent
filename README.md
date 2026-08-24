@@ -18,9 +18,9 @@ This repository has been fully optimized to minimize LLM token consumption, redu
 | **Cloud Reranking** | Jina AI (`jina-reranker-v2-base-multilingual`) | Accurate relevance scoring |
 | **Local Embeddings** | SentenceTransformers (`all-MiniLM-L6-v2`) | Offline local search |
 | **Local Reranking** | CrossEncoder (`cross-encoder/ettin-reranker-17m-v1`) | Minimal RAM footprint |
-| **Intent Router** | Groq (`llama-3.1-8b-instant`) | Ultra-fast JSON routing |
-| **SQL Generator** | Groq (`llama-3.1-8b-instant`) | Fast query compilation |
-| **Response Synthesis**| Groq (`llama-3.3-70b-versatile`) | Premium reasoning output |
+| **Intent Router** | Groq (`gpt-oss-20b`) | Ultra-fast JSON routing |
+| **SQL Generator** | Groq (`gpt-oss-20b`) | Fast query compilation |
+| **Response Synthesis**| Groq (`gpt-oss-120b`) | Premium reasoning output |
 | **Frontend UI** | React + Vite + TypeScript | Type-safe hot reloading |
 | **Data Visualizations**| Recharts | Dynamic interactive plotting |
 
@@ -534,9 +534,9 @@ GROQ_API_KEY=your_groq_api_key_here
 EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
 ENABLE_RERANKER=false     # Set to true to enable CrossEncoder reranking
 RERANK_MODEL_NAME=cross-encoder/ettin-reranker-17m-v1
-GROQ_ROUTER_MODEL=llama-3.1-8b-instant
-GROQ_SQL_MODEL=llama-3.1-8b-instant
-GROQ_GENERATOR_MODEL=llama-3.3-70b-versatile
+GROQ_ROUTER_MODEL=gpt-oss-20b
+GROQ_SQL_MODEL=gpt-oss-20b
+GROQ_GENERATOR_MODEL=gpt-oss-120b
 HF_HUB_OFFLINE=1          # Set to 1 in production (uses Docker cached model weights)
 TRANSFORMERS_OFFLINE=1   # Set to 1 in production (uses Docker cached model weights)
 ```

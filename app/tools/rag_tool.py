@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 class RAGTool:
     """
     Optimized RAG tool that uses hybrid search retrieval (vector + BM25 + exact boosts),
-    reranking via a CrossEncoder, and Llama-3.1-8b based chunk context compression.
+    reranking via a CrossEncoder, and gpt-oss-20b based chunk context compression.
     """
     def __init__(self, db: Session):
         self.db = db

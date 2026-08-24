@@ -32,9 +32,9 @@ The application uses environment variables for all runtime settings. Below is th
 | `EMBEDDING_MODEL_NAME` | `all-MiniLM-L6-v2` | Model name for text embedding generation. | No |
 | `ENABLE_RERANKER` | `false` | Set to `true` to enable CrossEncoder reranking. Saves memory/CPU when `false`. | No |
 | `RERANK_MODEL_NAME` | `cross-encoder/ettin-reranker-17m-v1` | Model name for CrossEncoder reranking. | No |
-| `GROQ_ROUTER_MODEL` | `llama-3.1-8b-instant` | Groq model for intent routing. | No |
-| `GROQ_SQL_MODEL` | `llama-3.1-8b-instant` | Groq model for text-to-SQL generation. | No |
-| `GROQ_GENERATOR_MODEL` | `llama-3.3-70b-versatile` | Groq model for final business response synthesis. | No |
+| `GROQ_ROUTER_MODEL` | `gpt-oss-20b` | Groq model for intent routing. | No |
+| `GROQ_SQL_MODEL` | `gpt-oss-20b` | Groq model for text-to-SQL generation. | No |
+| `GROQ_GENERATOR_MODEL` | `gpt-oss-120b` | Groq model for final business response synthesis. | No |
 | `REDIS_CACHE_TTL` | `3600` | Caching time-to-live in seconds. | No |
 | `INIT_DB` | `false` | Set to `true` to auto-initialize schemas on startup. | No |
 | `AUTO_SEED` | `false` | Set to `true` to clear tables and re-ingest CSV/PDF datasets. | No |
@@ -140,8 +140,8 @@ The AI Analyst Agent utilizes Groq Cloud APIs for instant inference across its w
 
 1. **Obtain an API Key**: Sign up at [console.groq.com](https://console.groq.com/) and generate an API key. Set it as `GROQ_API_KEY`.
 2. **Model Selection**:
-   * **Intent Routing & SQL Generation**: Standardized on `llama-3.1-8b-instant` due to its high speed (sub-200ms latency) and reliable JSON schema generation.
-   * **Business Response Generation**: Standardized on `llama-3.3-70b-versatile` to synthesize high-quality, jargon-free business reports.
+   * **Intent Routing & SQL Generation**: Standardized on `gpt-oss-20b` due to its high speed (sub-200ms latency) and reliable JSON schema generation.
+   * **Business Response Generation**: Standardized on `gpt-oss-120b` to synthesize high-quality, jargon-free business reports.
 3. **Rate Limits & Failovers**:
    * If you hit rate limits (`429 Too Many Requests`), ensure you are running with response caching enabled on Upstash to prevent duplicate LLM calls for identical queries.
 

@@ -14,7 +14,7 @@ class ChatMemoryService:
     """
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = settings.GROQ_ROUTER_MODEL  # Llama-3.1-8b-instant (fast and low-cost)
+        self.model = settings.GROQ_ROUTER_MODEL  # gpt-oss-20b (fast and low-cost)
 
     def get_history(self, db: Session, session_id: str, limit: int = 10) -> List[ChatMessage]:
         """
