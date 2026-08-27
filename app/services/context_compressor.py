@@ -1,14 +1,16 @@
 from groq import Groq
+
 from app.config import settings
+
 
 class ContextCompressor:
     """
     Service class responsible for summarizing retrieved document chunks to 100-150 tokens.
-    Leverages a fast, low-cost Llama-3.1-8b model via Groq API.
+    Leverages a fast, low-cost gpt-oss-20b model via Groq API.
     """
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = settings.GROQ_SQL_MODEL # Llama-3.1-8b-instant
+        self.model = settings.GROQ_SQL_MODEL # gpt-oss-20b
 
     def compress_chunk(self, query: str, chunk_text: str) -> dict:
         """

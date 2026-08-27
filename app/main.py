@@ -8,9 +8,10 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from sqlalchemy import text
 
 from app.api.endpoints import router as api_router
@@ -76,7 +77,7 @@ def health_check():
 @app.get("/ready")
 def readiness_check():
     checks = {}
-    
+
     # 1. Database Connection check
     try:
         with engine.connect() as conn:
@@ -84,7 +85,7 @@ def readiness_check():
         checks["database"] = "healthy"
     except Exception as e:
         checks["database"] = f"unhealthy: {e}"
-        
+
     # 2. Redis Connection check
     try:
         cache_service = RedisCacheService()
@@ -97,11 +98,11 @@ def readiness_check():
             checks["redis"] = "disabled"
     except Exception as e:
         checks["redis"] = f"unhealthy: {e}"
-        
+
     # If the core database check fails, return 503 Service Unavailable
     if "unhealthy" in checks["database"]:
         raise HTTPException(status_code=503, detail={"status": "unready", "checks": checks})
-        
+
     return {
         "status": "ready",
         "checks": checks

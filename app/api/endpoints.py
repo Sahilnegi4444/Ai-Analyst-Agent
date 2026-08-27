@@ -1,24 +1,29 @@
 import os
 import shutil
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.agents.workflow import AgentExecutor
 from app.database import get_db
+from app.models import DocumentChunk
+from app.schemas.analytics import AnalyticsReport, InventorySummary, SalesSummary
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
-    SourceAttribution,
-    MessageHistoryResponse,
     MessageHistoryItem,
-    SessionListResponse
+    MessageHistoryResponse,
+    SessionListResponse,
+    SourceAttribution,
 )
-from app.schemas.documents import DocumentMetadata, DocumentListResponse, DocumentUploadResponse
-from app.schemas.analytics import AnalyticsReport, SalesSummary, InventorySummary
-from app.agents.workflow import AgentExecutor
+from app.schemas.documents import (
+    DocumentListResponse,
+    DocumentMetadata,
+    DocumentUploadResponse,
+)
 from app.services.analytics_service import AnalyticsService
 from app.services.ingestion import IngestionService
-from app.models import DocumentChunk
-from sqlalchemy import func
 
 router = APIRouter()
 
@@ -47,7 +52,7 @@ def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
 
         # 4. Invoke LangGraph Agent workflow using the contextualized/rewritten query
         res = AgentExecutor.run(processed_query)
-        
+
         # Format source attributions if RAG chunks are present
         sources = None
         if res.get("rag_chunks"):
@@ -122,7 +127,7 @@ def get_session_message_history(session_id: str, db: Session = Depends(get_db)):
         from app.services.memory_service import ChatMemoryService
         memory_service = ChatMemoryService()
         history = memory_service.get_history(db, session_id, limit=50) # Return up to 50 messages
-        
+
         items = []
         for msg in history:
             sources = None
@@ -135,7 +140,7 @@ def get_session_message_history(session_id: str, db: Session = Depends(get_db)):
                         confidence=s["confidence"]
                     ) for s in msg.sources
                 ]
-            
+
             items.append(
                 MessageHistoryItem(
                     id=msg.id,
@@ -180,35 +185,35 @@ def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db))
     """
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF documents are supported.")
-        
+
     doc_folder = "data/documents"
     os.makedirs(doc_folder, exist_ok=True)
-    
+
     # Extract only the base name to prevent path traversal/injection
     safe_filename = os.path.basename(file.filename)
     if not safe_filename or safe_filename in ('.', '..'):
         raise HTTPException(status_code=400, detail="Invalid filename.")
-        
+
     file_path = os.path.join(doc_folder, safe_filename)
     try:
         # Save uploaded file to disk
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            
+
         # Trigger parsing and vector ingestion
         ingestion = IngestionService(db)
-        
+
         # Check current chunk count to compute delta
         prev_count = db.query(DocumentChunk).filter(DocumentChunk.filename == safe_filename).count()
         if prev_count > 0:
             # Delete old chunks to allow clean override
             db.query(DocumentChunk).filter(DocumentChunk.filename == safe_filename).delete()
             db.commit()
-            
+
         ingestion.ingest_pdf_documents(doc_folder)
-        
+
         new_count = db.query(DocumentChunk).filter(DocumentChunk.filename == safe_filename).count()
-        
+
         return DocumentUploadResponse(
             filename=safe_filename,
             chunks_count=new_count,
@@ -235,7 +240,7 @@ def list_documents(db: Session = Depends(get_db)):
             .group_by(DocumentChunk.filename, DocumentChunk.title)
             .all()
         )
-        
+
         docs = [
             DocumentMetadata(
                 filename=row[0],
@@ -289,7 +294,7 @@ def get_analytics_report():
         inv_kpi = service.calculate_inventory_summary()
         distribution = service.calculate_monthly_sales_distribution()
         growth = service.calculate_month_over_month_growth()
-        
+
         return AnalyticsReport(
             sales=SalesSummary(**sales_kpi),
             inventory=InventorySummary(**inv_kpi),

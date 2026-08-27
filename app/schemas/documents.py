@@ -1,5 +1,6 @@
+
 from pydantic import BaseModel, Field
-from typing import List
+
 
 class DocumentMetadata(BaseModel):
     """
@@ -13,7 +14,7 @@ class DocumentListResponse(BaseModel):
     """
     Pydantic schema representing the document collection catalog.
     """
-    documents: List[DocumentMetadata] = Field(..., description="List of all uploaded and parsed documents.")
+    documents: list[DocumentMetadata] = Field(..., description="List of all uploaded and parsed documents.")
 
 class DocumentUploadResponse(BaseModel):
     """

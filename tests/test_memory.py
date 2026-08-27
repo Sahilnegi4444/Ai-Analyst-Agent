@@ -1,7 +1,7 @@
+import os
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
-import sys
-import os
 
 # Force mock providers for unit tests to ensure they run offline
 os.environ["EMBEDDING_PROVIDER"] = "mock"
@@ -13,8 +13,9 @@ os.environ["GROQ_API_KEY"] = "mock_key"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.database import SessionLocal
-from app.services.memory_service import ChatMemoryService
 from app.models import ChatMessage
+from app.services.memory_service import ChatMemoryService
+
 
 class MockGroq:
     def __init__(self, api_key=None, **kwargs):
@@ -86,7 +87,7 @@ class TestMemoryService(unittest.TestCase):
         # 1. Setup mock history items
         msg1 = ChatMessage(sender="user", text="Show suppliers from Germany")
         msg2 = ChatMessage(sender="agent", text="Here are the suppliers: Supplier A (Germany, rating: 4.5).")
-        
+
         # 2. Contextualize query
         rewritten = self.service.contextualize_query("What is their rating?", [msg1, msg2])
         self.assertEqual(rewritten, "What is the average rating of suppliers from Germany?")
@@ -99,7 +100,7 @@ class TestMemoryService(unittest.TestCase):
 
         # 2. Delete session
         self.service.delete_session(self.db, self.session_id)
-        
+
         # 3. Retrieve history and assert empty
         history_after = self.service.get_history(self.db, self.session_id)
         self.assertEqual(len(history_after), 0)

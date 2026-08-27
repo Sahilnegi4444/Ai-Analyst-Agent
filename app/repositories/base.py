@@ -1,19 +1,21 @@
-from typing import Generic, TypeVar, Type, List, Optional
+from typing import Generic, TypeVar
+
 from sqlalchemy.orm import Session
+
 from app.database import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
 class BaseRepository(Generic[ModelType]):
-    def __init__(self, model: Type[ModelType], db: Session):
+    def __init__(self, model: type[ModelType], db: Session):
         self.model = model
         self.db = db
 
-    def get(self, id: any) -> Optional[ModelType]:
+    def get(self, id: any) -> ModelType | None:
         # SQLAlchemy 2.0 style db.get()
         return self.db.get(self.model, id)
 
-    def get_multi(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
+    def get_multi(self, skip: int = 0, limit: int = 100) -> list[ModelType]:
         return self.db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, obj_in: ModelType) -> ModelType:
@@ -22,7 +24,7 @@ class BaseRepository(Generic[ModelType]):
         self.db.refresh(obj_in)
         return obj_in
 
-    def create_batch(self, objs: List[ModelType]) -> List[ModelType]:
+    def create_batch(self, objs: list[ModelType]) -> list[ModelType]:
         self.db.add_all(objs)
         self.db.commit()
         return objs
@@ -35,7 +37,7 @@ class BaseRepository(Generic[ModelType]):
         self.db.refresh(db_obj)
         return db_obj
 
-    def remove(self, id: any) -> Optional[ModelType]:
+    def remove(self, id: any) -> ModelType | None:
         obj = self.get(id)
         if obj:
             self.db.delete(obj)

@@ -1,5 +1,7 @@
+from typing import Any
+
 import pandas as pd
-from typing import List, Dict, Any
+
 
 class ResultSummarizer:
     """
@@ -15,7 +17,7 @@ class ResultSummarizer:
         """
         if num_results <= 15:
             return True
-            
+
         query_lower = query.lower()
         # Words suggesting they want lists/records directly or rankings
         keywords = [
@@ -26,7 +28,7 @@ class ResultSummarizer:
         return any(kw in query_lower for kw in keywords)
 
     @staticmethod
-    def summarize(results: List[Dict[str, Any]], query: str) -> Dict[str, Any]:
+    def summarize(results: list[dict[str, Any]], query: str) -> dict[str, Any]:
         """
         Converts the database result set to a Pandas DataFrame and calculates key statistics.
         Returns a concise dictionary summary suitable for injection into LLM prompts.

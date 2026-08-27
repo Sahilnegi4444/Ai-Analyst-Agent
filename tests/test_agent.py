@@ -1,6 +1,6 @@
-import unittest
 import os
 import sys
+import unittest
 from unittest.mock import MagicMock, patch
 
 # Force mock providers for unit tests to ensure they run offline
@@ -31,13 +31,13 @@ class MockGroq:
         mock_resp = MagicMock()
         mock_choice = MagicMock()
         mock_message = MagicMock()
-        
+
         # Router classification mock responses
         if "Classify the following user query" in user_content or "routing agent" in system_content:
             import re
             match = re.search(r'User Query: "(.*?)"', user_content)
             query_val = match.group(1).lower() if match else user_content.lower()
-            
+
             if "top 5 products" in query_val:
                 mock_message.content = '{"intent": "SQL_QUERY", "needs_sql": true, "needs_rag": false, "explanation": "Mock SQL"}'
             elif "sop" in query_val:
@@ -55,7 +55,7 @@ class MockGroq:
         else:
             # General response generator mock
             mock_message.content = "The inventory turnover ratio is 5.43, indicating the number of times the company sells and replaces its inventory within a given period."
-            
+
         mock_choice.message = mock_message
         mock_resp.choices = [mock_choice]
         mock_resp.usage = MagicMock()
@@ -63,11 +63,12 @@ class MockGroq:
         mock_resp.usage.completion_tokens = 5
         return mock_resp
 
-from app.database import SessionLocal  # noqa: E402
-from app.agents.router import IntentRouter  # noqa: E402
-from app.tools.sql_tool import SQLTool  # noqa: E402
-from app.tools.rag_tool import RAGTool  # noqa: E402
-from app.services.analytics_service import AnalyticsService  # noqa: E402
+from app.agents.router import IntentRouter
+from app.database import SessionLocal
+from app.services.analytics_service import AnalyticsService
+from app.tools.rag_tool import RAGTool
+from app.tools.sql_tool import SQLTool
+
 
 class TestAIAnalystAgent(unittest.TestCase):
     """
@@ -107,13 +108,13 @@ class TestAIAnalystAgent(unittest.TestCase):
     def test_intent_router(self):
         """Tests that the intent router correctly identifies SQL, RAG, and Analytics queries."""
         router = IntentRouter()
-        
+
         # Test SQL classification
         res1 = router.route_intent("Show top 5 products by revenue.")
         self.assertEqual(res1.get("intent"), "SQL_QUERY")
         self.assertTrue(res1.get("needs_sql"))
         self.assertFalse(res1.get("needs_rag"))
-        
+
         # Test RAG classification
         res2 = router.route_intent("Summarize the inventory management SOP.")
         self.assertEqual(res2.get("intent"), "RAG_QUERY")
@@ -127,10 +128,10 @@ class TestAIAnalystAgent(unittest.TestCase):
     def test_sql_guardrails(self):
         """Tests that the SQL tool correctly blocks malicious/mutating SQL commands."""
         sql_tool = SQLTool(self.db)
-        
+
         # Verify read-only query is allowed
         self.assertTrue(sql_tool._is_read_only("SELECT * FROM sales LIMIT 5"))
-        
+
         # Verify modifying keywords are blocked (regardless of capitalization)
         self.assertFalse(sql_tool._is_read_only("DELETE FROM sales WHERE customer_id = 'C0001'"))
         self.assertFalse(sql_tool._is_read_only("DROP TABLE customers CASCADE"))
@@ -142,11 +143,11 @@ class TestAIAnalystAgent(unittest.TestCase):
         """Tests that the RAG retrieval returns correct documents with high confidence."""
         rag_tool = RAGTool(self.db)
         res = rag_tool.retrieve_context("What is the procedure for inventory reordering?", top_k=2)
-        
+
         self.assertEqual(res.get("status"), "success")
         chunks = res.get("chunks", [])
         self.assertGreater(len(chunks), 0)
-        
+
         # Verify all source fields exist and scores are in [0, 1]
         for chunk in chunks:
             self.assertIn("filename", chunk)
@@ -158,7 +159,7 @@ class TestAIAnalystAgent(unittest.TestCase):
     def test_analytics_calculations(self):
         """Tests that the AnalyticsService computes correct Pandas mathematical formulas."""
         service = AnalyticsService()
-        
+
         # Verify Sales Summary KPIs
         sales_sum = service.calculate_sales_summary()
         self.assertIn("total_revenue", sales_sum)
@@ -188,10 +189,10 @@ class TestAIAnalystAgent(unittest.TestCase):
         """Tests that agent queries are cached and served from Redis cache or memory fallback."""
         from app.agents.workflow import AgentExecutor
         from app.services.cache_service import RedisCacheService
-        
+
         cache_service = RedisCacheService()
         query = "What is the inventory turnover ratio?"
-        
+
         if cache_service.enabled or cache_service.memory_fallback:
             # Clear key first to ensure cache miss on first call
             normalized = query.strip().lower()
@@ -201,11 +202,11 @@ class TestAIAnalystAgent(unittest.TestCase):
             elif cache_service.memory_fallback:
                 if cache_key in cache_service.memory_cache:
                     del cache_service.memory_cache[cache_key]
-            
+
             # First execution (Cache Miss)
             res1 = AgentExecutor.run(query)
             self.assertEqual(res1.get("cached"), False)
-            
+
             # Second execution (Cache Hit)
             res2 = AgentExecutor.run(query)
             self.assertEqual(res2.get("cached"), True)

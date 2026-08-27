@@ -1,5 +1,6 @@
+
 from pydantic import BaseModel, Field
-from typing import Dict
+
 
 class SalesSummary(BaseModel):
     """
@@ -24,5 +25,5 @@ class AnalyticsReport(BaseModel):
     """
     sales: SalesSummary = Field(..., description="Sales performance summary.")
     inventory: InventorySummary = Field(..., description="Inventory health summary.")
-    monthly_sales_distribution: Dict[str, float] = Field(..., description="Monthly revenue breakdown.")
-    month_over_month_growth: Dict[str, float] = Field(..., description="MoM sales growth percentages.")
+    monthly_sales_distribution: dict[str, float] = Field(..., description="Monthly revenue breakdown.")
+    month_over_month_growth: dict[str, float] = Field(..., description="MoM sales growth percentages.")

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+
 from app.models import DocumentChunk
 from app.services.embedding import EmbeddingService
 
@@ -136,7 +137,7 @@ class SchemaIndexer:
         for idx, (table_name, info) in enumerate(TABLE_SCHEMAS.items()):
             content_to_embed = f"Table: {table_name}. Description: {info['description']}"
             embedding = self.embedding_service.get_embedding(content_to_embed)
-            
+
             db_chunks.append(DocumentChunk(
                 filename="database_schema.json",
                 title=f"Table: {table_name}",
@@ -144,7 +145,7 @@ class SchemaIndexer:
                 content=info["schema_text"],
                 embedding=embedding
             ))
-            
+
         self.db.add_all(db_chunks)
         self.db.commit()
         print(f"Indexed {len(db_chunks)} table schemas successfully.")
@@ -153,7 +154,7 @@ class SchemaIndexer:
         """Retrieves and formats table schemas relevant to the query."""
         import re
         query_lower = query.lower()
-        
+
         # 1. Run keyword heuristics to identify tables to force-include
         keyword_map = {
             "sales": ["sale", "sales", "sold", "revenue", "transaction", "transactions", "amount", "quantity", "quarter", "month", "year", "date", "payment", "buy", "bought", "purchase", "spend", "income"],
@@ -167,7 +168,7 @@ class SchemaIndexer:
             "warehouse_events": ["event", "events", "delay", "delays", "bottleneck", "bottlenecks", "incident", "disruption"],
             "reviews": ["review", "reviews", "rating", "ratings", "feedback", "comment", "comments", "star", "sentiment"]
         }
-        
+
         force_tables = set()
         for table, keywords in keyword_map.items():
             for kw in keywords:
@@ -184,18 +185,18 @@ class SchemaIndexer:
             .order_by('distance')
             .all()
         )
-        
+
         # 3. Build the final list of schemas, prioritizing force-included tables
         selected_schemas = []
         selected_table_names = set()
-        
+
         # Add force-included tables first
         for chunk, _ in results:
             table_name = chunk.title.replace("Table: ", "").strip()
             if table_name in force_tables:
                 selected_schemas.append(chunk.content)
                 selected_table_names.add(table_name)
-                
+
         # Fill remaining slots with the closest remaining vector results
         for chunk, _ in results:
             table_name = chunk.title.replace("Table: ", "").strip()
@@ -203,8 +204,8 @@ class SchemaIndexer:
                 if len(selected_schemas) < max(top_n, len(force_tables)):
                     selected_schemas.append(chunk.content)
                     selected_table_names.add(table_name)
-                    
+
         # Limit to a maximum of 5 tables to keep context compact but complete
         selected_schemas = selected_schemas[:5]
-        
+
         return "\n\n".join(selected_schemas)

@@ -1,11 +1,13 @@
 import datetime
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from typing import Any
+
 from groq import Groq
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import ChatMessage
+
 
 class ChatMemoryService:
     """
@@ -14,9 +16,9 @@ class ChatMemoryService:
     """
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = settings.GROQ_ROUTER_MODEL  # Llama-3.1-8b-instant (fast and low-cost)
+        self.model = settings.GROQ_ROUTER_MODEL  # gpt-oss-20b (fast and low-cost)
 
-    def get_history(self, db: Session, session_id: str, limit: int = 10) -> List[ChatMessage]:
+    def get_history(self, db: Session, session_id: str, limit: int = 10) -> list[ChatMessage]:
         """
         Retrieves the last N messages for a given session ID in chronological order.
         """
@@ -34,13 +36,13 @@ class ChatMemoryService:
         session_id: str,
         sender: str,
         text: str,
-        intent: Optional[str] = None,
-        sql_generated: Optional[str] = None,
-        sql_results: Optional[List[Dict[str, Any]]] = None,
-        sources: Optional[List[Dict[str, Any]]] = None,
-        latency_seconds: Optional[float] = None,
-        cached: Optional[bool] = None,
-        status: Optional[str] = None
+        intent: str | None = None,
+        sql_generated: str | None = None,
+        sql_results: list[dict[str, Any]] | None = None,
+        sources: list[dict[str, Any]] | None = None,
+        latency_seconds: float | None = None,
+        cached: bool | None = None,
+        status: str | None = None
     ) -> ChatMessage:
         """
         Appends a user query or agent response to the session history in PostgreSQL.
@@ -66,9 +68,9 @@ class ChatMemoryService:
         except Exception as e:
             db.rollback()
             print(f"[ERROR] Failed to save chat message: {e}")
-            raise e
+            raise
 
-    def contextualize_query(self, query: str, history: List[ChatMessage]) -> str:
+    def contextualize_query(self, query: str, history: list[ChatMessage]) -> str:
         """
         Uses an LLM to rewrite a user query, injecting context from the history
         so that the query is self-contained. E.g.:
@@ -97,7 +99,7 @@ class ChatMemoryService:
         for msg in history:
             role = "User" if msg.sender == "user" else "Assistant"
             history_lines.append(f"{role}: {msg.text}")
-        
+
         history_str = "\n".join(history_lines)
         user_content = f"Conversation History:\n{history_str}\n\nLatest Query: \"{query}\"\n\nRewritten Query:"
 
@@ -112,18 +114,16 @@ class ChatMemoryService:
             )
             rewritten = response.choices[0].message.content.strip()
             # Clean up potential leading/trailing quotes from LLM
-            if rewritten.startswith('"') and rewritten.endswith('"'):
+            if rewritten.startswith('"') and rewritten.endswith('"') or rewritten.startswith("'") and rewritten.endswith("'"):
                 rewritten = rewritten[1:-1].strip()
-            elif rewritten.startswith("'") and rewritten.endswith("'"):
-                rewritten = rewritten[1:-1].strip()
-            
+
             print(f"[CONTEXTUALIZER] Original: '{query}' -> Rewritten: '{rewritten}'")
             return rewritten if rewritten else query
         except Exception as e:
             print(f"[WARNING] Query contextualization failed: {e}. Using original query.")
             return query
 
-    def get_sessions(self, db: Session) -> List[str]:
+    def get_sessions(self, db: Session) -> list[str]:
         """
         Retrieves unique session IDs in descending order of their latest activity.
         """
@@ -135,13 +135,13 @@ class ChatMemoryService:
             .group_by(ChatMessage.session_id)
             .subquery()
         )
-        
+
         rows = (
             db.query(subquery.c.session_id)
             .order_by(subquery.c.last_activity.desc())
             .all()
         )
-        
+
         return [row[0] for row in rows]
 
     def delete_session(self, db: Session, session_id: str):
@@ -154,4 +154,4 @@ class ChatMemoryService:
         except Exception as e:
             db.rollback()
             print(f"[ERROR] Failed to delete session: {e}")
-            raise e
+            raise

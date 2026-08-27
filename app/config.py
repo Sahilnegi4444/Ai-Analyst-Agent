@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file if present
@@ -6,7 +7,7 @@ load_dotenv()
 
 class Settings:
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
+        "DATABASE_URL",
         "postgresql://localhost:5432/ai_analyst_db"
     )
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
@@ -16,9 +17,9 @@ class Settings:
     EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "jina")
     RERANKER_PROVIDER: str = os.getenv("RERANKER_PROVIDER", "jina")
     JINA_API_KEY: str = os.getenv("JINA_API_KEY", "")
-    GROQ_ROUTER_MODEL: str = os.getenv("GROQ_ROUTER_MODEL", "llama-3.1-8b-instant")
-    GROQ_SQL_MODEL: str = os.getenv("GROQ_SQL_MODEL", "llama-3.1-8b-instant")
-    GROQ_GENERATOR_MODEL: str = os.getenv("GROQ_GENERATOR_MODEL", "llama-3.3-70b-versatile")
+    GROQ_ROUTER_MODEL: str = os.getenv("GROQ_ROUTER_MODEL", "gpt-oss-20b")
+    GROQ_SQL_MODEL: str = os.getenv("GROQ_SQL_MODEL", "gpt-oss-20b")
+    GROQ_GENERATOR_MODEL: str = os.getenv("GROQ_GENERATOR_MODEL", "gpt-oss-120b")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     REDIS_CACHE_TTL: int = int(os.getenv("REDIS_CACHE_TTL", "3600"))
 

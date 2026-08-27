@@ -1,7 +1,9 @@
 import re
+
+from groq import Groq
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from groq import Groq
+
 from app.config import settings
 
 # =####################################################################
@@ -120,11 +122,11 @@ class SQLTool:
         """
         from app.services.cache_service import RedisCacheService
         cache_service = RedisCacheService()
-        
+
         # 1. Try to get SQL query from Redis Cache
         cached_sql = cache_service.get_cached_sql(user_question)
         is_cached = False
-        
+
         if cached_sql:
             sql_query = cached_sql
             print(f"[SQL CACHE HIT] SQL query served from cache: {sql_query}")
@@ -154,7 +156,7 @@ class SQLTool:
             print(f"Syntax validation failed. Attempting self-correction. Error: {error_msg}")
             sql_query = self._generate_sql(user_question, syntax_error=error_msg)
             print(f"Self-corrected SQL: {sql_query}")
-            
+
             # Re-run safety and validation
             if not self._is_read_only(sql_query):
                 return {
@@ -222,10 +224,10 @@ class SQLTool:
                 "results": None
             }
 
-    def _generate_sql(self, question: str, syntax_error: str = None) -> str:
+    def _generate_sql(self, question: str, syntax_error: str | None = None) -> str:
         """Sends prompt to Groq using dynamic schema retrieval."""
         from app.services.schema_indexer import SchemaIndexer
-        
+
         system_prompt = (
             "You are a PostgreSQL expert database analyst. Your task is to output a clean, "
             "syntactically correct PostgreSQL SELECT statement to answer the user's question.\n"
@@ -250,9 +252,9 @@ class SQLTool:
         # Retrieve Top 4 relevant tables dynamically from pgvector
         schema_indexer = SchemaIndexer(self.db)
         relevant_schema = schema_indexer.retrieve_relevant_schemas(question, top_n=4)
-        
+
         prompt = f"""Database Schema:\n{relevant_schema}\n\n"""
-        
+
         if syntax_error:
             prompt += f"Note: Your previous query failed syntax validation with the following error: {syntax_error}\nPlease correct it.\n\n"
 
@@ -266,11 +268,11 @@ class SQLTool:
             model=self.model,
             temperature=0.0
         )
-        
+
         # Accumulate token metrics
         self.prompt_tokens += response.usage.prompt_tokens
         self.completion_tokens += response.usage.completion_tokens
-        
+
         sql = response.choices[0].message.content.strip()
         # Clean any accidental markdown wrap
         sql = re.sub(r"^```sql\s*", "", sql, flags=re.IGNORECASE)

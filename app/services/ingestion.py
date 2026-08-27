@@ -1,14 +1,25 @@
 import os
+
 import pandas as pd
 from pypdf import PdfReader
 from sqlalchemy.orm import Session
 
 from app.database import engine
 from app.models import (
-    Supplier, Product, Customer, MarketingCampaign, Inventory,
-    InventoryHistory, SalesRecord, ReturnRecord, WarehouseEvent, Review, DocumentChunk
+    Customer,
+    DocumentChunk,
+    Inventory,
+    InventoryHistory,
+    MarketingCampaign,
+    Product,
+    ReturnRecord,
+    Review,
+    SalesRecord,
+    Supplier,
+    WarehouseEvent,
 )
 from app.services.embedding import EmbeddingService
+
 
 class IngestionService:
     def __init__(self, db: Session):
@@ -35,7 +46,7 @@ class IngestionService:
         except Exception as e:
             transaction.rollback()
             print(f"Error during truncation: {e}")
-            raise e
+            raise
         finally:
             connection.close()
 
@@ -144,15 +155,15 @@ class IngestionService:
     def ingest_sales(self, csv_path: str):
         print("Ingesting sales (in batches)...")
         df = pd.read_csv(csv_path)
-        
+
         # Batch loading for 50,000 records
         batch_size = 5000
         total_records = len(df)
-        
+
         for start_idx in range(0, total_records, batch_size):
             end_idx = min(start_idx + batch_size, total_records)
             batch_df = df.iloc[start_idx:end_idx]
-            
+
             sales_batch = []
             for _, row in batch_df.iterrows():
                 sales_batch.append(SalesRecord(
@@ -169,7 +180,7 @@ class IngestionService:
             self.db.add_all(sales_batch)
             self.db.commit()
             print(f"Ingested sales records {start_idx} to {end_idx}...")
-            
+
         print("Finished sales ingestion.")
 
     def ingest_returns(self, csv_path: str):
@@ -206,14 +217,14 @@ class IngestionService:
     def ingest_reviews(self, csv_path: str):
         print("Ingesting product reviews...")
         df = pd.read_csv(csv_path)
-        
+
         batch_size = 2000
         total_records = len(df)
-        
+
         for start_idx in range(0, total_records, batch_size):
             end_idx = min(start_idx + batch_size, total_records)
             batch_df = df.iloc[start_idx:end_idx]
-            
+
             reviews_batch = []
             for _, row in batch_df.iterrows():
                 reviews_batch.append(Review(
@@ -227,7 +238,7 @@ class IngestionService:
             self.db.add_all(reviews_batch)
             self.db.commit()
             print(f"Ingested reviews {start_idx} to {end_idx}...")
-            
+
         print("Finished reviews ingestion.")
 
     def ingest_pdf_documents(self, doc_folder: str):
@@ -237,25 +248,25 @@ class IngestionService:
             return
 
         pdf_files = [f for f in os.listdir(doc_folder) if f.endswith('.pdf')]
-        
+
         for filename in pdf_files:
             file_path = os.path.join(doc_folder, filename)
             print(f"Processing PDF: {filename}...")
-            
+
             reader = PdfReader(file_path)
             full_text = ""
             for page in reader.pages:
                 text = page.extract_text()
                 if text:
                     full_text += text + "\n"
-            
+
             # Paragraph-based chunking
             paragraphs = [p.strip() for p in full_text.split('\n\n') if p.strip()]
-            
+
             chunks = []
             chunk_size_words = 150
             chunk_overlap_words = 30
-            
+
             for p in paragraphs:
                 words = p.split()
                 if len(words) > chunk_size_words:
@@ -264,15 +275,15 @@ class IngestionService:
                         chunks.append(chunk)
                 else:
                     chunks.append(p)
-            
+
             # Embed and insert chunks
             title = filename.replace('.pdf', '').replace('_', ' ').title()
             db_chunks = []
-            
+
             for idx, chunk_content in enumerate(chunks):
                 # Generate embedding vector
                 embedding = self.embedding_service.get_embedding(chunk_content)
-                
+
                 db_chunks.append(DocumentChunk(
                     filename=filename,
                     title=title,
@@ -280,9 +291,9 @@ class IngestionService:
                     content=chunk_content,
                     embedding=embedding
                 ))
-                
+
             self.db.add_all(db_chunks)
             self.db.commit()
             print(f"Loaded {len(db_chunks)} chunks for {filename}.")
-            
+
         print("Finished PDF documents ingestion.")

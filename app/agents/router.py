@@ -1,7 +1,10 @@
 import json
 import re
+
 from groq import Groq
+
 from app.config import settings
+
 
 class IntentRouter:
     """
@@ -41,10 +44,10 @@ class IntentRouter:
         hybrid_keywords = ["why", "explain", "reason", "impact", "seasonality", "difference"]
         analytics_keywords = ["turnover", "mom", "growth", "ratio", "calculations", "analysis", "analysing", "analyzing", "compare"]
         rag_keywords = [
-            "policy", "policies", "sop", "sops", "handbook", "handbooks", 
-            "contract", "contracts", "procedure", "procedures", "rule", "rules", 
-            "manual", "manuals", "sla", "slas", "penalty", "penalties", 
-            "guideline", "guidelines", "agreement", "agreements", "deadline", "deadlines", 
+            "policy", "policies", "sop", "sops", "handbook", "handbooks",
+            "contract", "contracts", "procedure", "procedures", "rule", "rules",
+            "manual", "manuals", "sla", "slas", "penalty", "penalties",
+            "guideline", "guidelines", "agreement", "agreements", "deadline", "deadlines",
             "delivery", "deliveries", "liability", "liabilities", "documentation"
         ]
         sql_keywords = ["sales","sale","revenue","profit","customer","customers","product","products","inventory","stock","orders","transaction","top","count","sum","average","avg","total"]
@@ -96,7 +99,7 @@ class IntentRouter:
         Returns:
             dict: Structured classification containing 'intent', 'needs_sql', 'needs_rag', and 'explanation'.
         """
-        
+
         # 1. Run rule-based router first
         rule_res = self.route_by_rules(query)
         if rule_res is not None:
@@ -161,7 +164,7 @@ JSON response:"""
                 response_format={"type": "json_object"},
                 temperature=0.0
             )
-            
+
             result = json.loads(response.choices[0].message.content)
             # Standardize returned keys
             result["needs_sql"] = bool(result.get("needs_sql", False))
@@ -171,7 +174,7 @@ JSON response:"""
             result["prompt_tokens"] = response.usage.prompt_tokens
             result["completion_tokens"] = response.usage.completion_tokens
             return result
-            
+
         except Exception as e:
             print(f"[ERROR] Intent Router failure: {e}")
             # Safe default fallback
