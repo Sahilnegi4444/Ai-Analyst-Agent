@@ -41,8 +41,8 @@ class IntentRouter:
             return None
 
         # Scan for intent keywords
-        hybrid_keywords = ["why", "explain", "reason", "impact", "seasonality", "difference"]
-        analytics_keywords = ["turnover", "mom", "growth", "ratio", "calculations", "analysis", "analysing", "analyzing", "compare"]
+        hybrid_keywords = ["why", "explain", "reason", "impact", "seasonality"]
+        analytics_keywords = ["turnover", "mom", "growth", "ratio", "calculations", "analysis", "analysing", "analyzing", "compare", "comparison", "difference", "variance", "diff"]
         rag_keywords = [
             "policy", "policies", "sop", "sops", "handbook", "handbooks",
             "contract", "contracts", "procedure", "procedures", "rule", "rules",
@@ -50,7 +50,7 @@ class IntentRouter:
             "guideline", "guidelines", "agreement", "agreements", "deadline", "deadlines",
             "delivery", "deliveries", "liability", "liabilities", "documentation"
         ]
-        sql_keywords = ["sales","sale","revenue","profit","customer","customers","product","products","inventory","stock","orders","transaction","top","count","sum","average","avg","total"]
+        sql_keywords = ["sales","sale","revenue","profit","customer","customers","product","products","inventory","stock","orders","transaction","top","count","sum","average","avg","total","generated"]
 
         has_hybrid = any(re.search(rf"\b{kw}\b", query_lower) for kw in hybrid_keywords)
         has_analytics = any(re.search(rf"\b{kw}\b", query_lower) for kw in analytics_keywords)
