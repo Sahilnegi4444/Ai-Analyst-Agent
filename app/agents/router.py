@@ -18,13 +18,13 @@ class IntentRouter:
 
     def route_by_rules(self, query: str) -> dict:
         """
-        Determines query intent using simple regex/keyword heuristics.
-        Returns a dict if a high-confidence match is found, else None.
+        Determines query intent using minimal, high-confidence security and document rules.
+        All other queries fall back to the fast LLM router for high-accuracy semantic classification.
         """
         query_lower = query.lower()
 
-        # 1. SECURITY VIOLATION: Check mutating keywords or injection attempts
-        security_keywords = ["delete", "drop", "update", "insert", "alter", "truncate", "bypass", "grant", "revoke"]
+        # 1. SECURITY VIOLATION: Guardrail against mutating keywords
+        security_keywords = ["delete", "drop", "update", "insert", "alter", "truncate", "grant", "revoke"]
         if any(re.search(rf"\b{kw}\b", query_lower) for kw in security_keywords) or "bypass security" in query_lower:
             return {
                 "intent": "SECURITY_VIOLATION",
@@ -33,63 +33,20 @@ class IntentRouter:
                 "explanation": "Rule-based match: Potential security boundary violation or database mutation query detected."
             }
 
-        # 1.5. PROGRAMMING & ROLEPLAY BYPASS: If the query contains programming, coding, or roleplay keywords,
-        # fallback to semantic LLM routing so it is correctly classified as UNSUPPORTED_QUERY.
-        programming_keywords = ["python", "code", "program", "function", "javascript", "script", "coding", "write a", "implement a", "class", "def ", "java", "c++", "programming"]
-        roleplay_keywords = ["assume", "act as", "you are a", "roleplay", "pretend"]
-        if any(re.search(rf"\b{kw}\b", query_lower) for kw in programming_keywords + roleplay_keywords):
-            return None
+        # 2. PURE DOCUMENT SEARCH: High-confidence document keywords
+        rag_keywords = ["policy", "policies", "sop", "sops", "handbook", "handbooks", "manual", "manuals", "contract", "contracts"]
+        if any(re.search(rf"\b{kw}\b", query_lower) for kw in rag_keywords):
+            # If query also mentions database metrics, let LLM decide if it's hybrid
+            sql_words = ["sales", "revenue", "profit", "customer", "products", "inventory"]
+            if not any(re.search(rf"\b{kw}\b", query_lower) for kw in sql_words):
+                return {
+                    "intent": "RAG_QUERY",
+                    "needs_sql": False,
+                    "needs_rag": True,
+                    "explanation": "Rule-based match: Pure document policy search query."
+                }
 
-        # Scan for intent keywords
-        hybrid_keywords = ["why", "explain", "reason", "impact", "seasonality"]
-        analytics_keywords = ["turnover", "mom", "growth", "ratio", "calculations", "analysis", "analysing", "analyzing", "compare", "comparison", "difference", "variance", "diff"]
-        rag_keywords = [
-            "policy", "policies", "sop", "sops", "handbook", "handbooks",
-            "contract", "contracts", "procedure", "procedures", "rule", "rules",
-            "manual", "manuals", "sla", "slas", "penalty", "penalties",
-            "guideline", "guidelines", "agreement", "agreements", "deadline", "deadlines",
-            "delivery", "deliveries", "liability", "liabilities", "documentation"
-        ]
-        sql_keywords = ["sales","sale","revenue","profit","customer","customers","product","products","inventory","stock","orders","transaction","top","count","sum","average","avg","total","generated"]
-
-        has_hybrid = any(re.search(rf"\b{kw}\b", query_lower) for kw in hybrid_keywords)
-        has_analytics = any(re.search(rf"\b{kw}\b", query_lower) for kw in analytics_keywords)
-        has_rag = any(re.search(rf"\b{kw}\b", query_lower) for kw in rag_keywords)
-        has_sql = any(re.search(rf"\b{kw}\b", query_lower) for kw in sql_keywords)
-
-        # Ambiguous/Overlap check: If hybrid keywords are found, or multiple distinct intents are matched,
-        # fallback to semantic LLM routing so it can parse grammar and relationships.
-        categories_matched = sum([has_sql, has_rag, has_analytics, has_hybrid])
-        if categories_matched > 1 or has_hybrid:
-            return None
-
-        # 2. Pure RAG query (contains RAG keywords, but no SQL keywords)
-        if has_rag and not has_sql:
-            return {
-                "intent": "RAG_QUERY",
-                "needs_sql": False,
-                "needs_rag": True,
-                "explanation": "Rule-based match: Pure document search query."
-            }
-
-        # 3. Pure SQL query (contains SQL keywords, but no RAG or Analytics keywords)
-        if has_sql and not has_rag and not has_analytics:
-            return {
-                "intent": "SQL_QUERY",
-                "needs_sql": True,
-                "needs_rag": False,
-                "explanation": "Rule-based match: Pure database query requested."
-            }
-
-        # 4. Pure Analytics query (contains Analytics keywords, but no RAG keywords)
-        if has_analytics and not has_rag:
-            return {
-                "intent": "ANALYTICS_QUERY",
-                "needs_sql": True,
-                "needs_rag": False,
-                "explanation": "Rule-based match: Analytics calculation requested."
-            }
-
+        # Fallback to LLM Router for semantic intent classification
         return None
 
     def route_intent(self, query: str) -> dict:
