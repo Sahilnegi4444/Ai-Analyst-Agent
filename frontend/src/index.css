@@ -1,102 +1,43 @@
 :root {
-  /* Vercel & Notion AI Inspired Clean Light Palette */
-  --bg-deep: #ffffff;
-  --bg-workspace: #fafafa;
-  --bg-panel: #ffffff;
+  /* ChatGPT Clean Light Theme (Default) */
+  --bg-primary: #ffffff;
+  --bg-sidebar: #f9f9f9;
+  --bg-secondary: #f4f4f4;
+  --bg-hover: #ececec;
+  --bg-card: #ffffff;
+  --bg-input: #f4f4f4;
 
-  --text: #3f3f46;
-  /* Muted Zinc text for paragraphs */
-  --text-h: #09090b;
-  /* High contrast dark zinc for headers */
-  --border: #e4e4e7;
-  /* Crisp, thin borders */
-  --border-hover: #d4d4d8;
-  --code-bg: #f4f4f5;
+  --text-primary: #0d0d0d;
+  --text-secondary: #5d5d5d;
+  --text-muted: #8e8e8e;
 
-  --accent-brand: #18181b;
-  /* Neutral dark brand accent */
-  --accent-brand-hover: #27272a;
-  --accent-brand-bg: rgba(24, 24, 27, 0.05);
-  --accent-brand-border: rgba(24, 24, 27, 0.15);
-  --accent: var(--accent-brand);
-  --accent-hover: var(--accent-brand-hover);
+  --border-subtle: #e5e5e5;
+  --border-light: rgba(0, 0, 0, 0.1);
 
-  --accent-success: #10b981;
-  --accent-success-bg: rgba(16, 185, 129, 0.06);
-  --accent-success-border: rgba(16, 185, 129, 0.15);
+  --accent-gpt: #10a37f;
+  --accent-gpt-hover: #1a7f64;
+  --accent-gpt-light: rgba(16, 163, 127, 0.1);
 
-  --accent-warn: #ef4444;
-  --accent-warn-bg: rgba(239, 68, 68, 0.06);
-  --accent-warn-border: rgba(239, 68, 68, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
 
-  --sidebar-bg: #f4f4f5;
-  /* Light Notion-like sidebar */
-  --sidebar-text: #18181b;
-  --sidebar-text-muted: #71717a;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
 
-  /* flat, soft shadows - no neon colors, no glows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
-
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-
-  /* Typography Pairing */
-  --display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --mono: 'Fira Code', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: 'Fira Code', 'Consolas', monospace;
 
   font-family: var(--sans);
-  background-color: var(--bg-workspace);
-  color: var(--text);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Flat Minimalist Vercel Dark Mode (no neon, no glows) */
-    --bg-workspace: #09090b;
-    --bg-panel: #18181b;
-    --bg-deep: #09090b;
-
-    --text: #a1a1aa;
-    --text-h: #f4f4f5;
-    --border: #27272a;
-    --border-hover: #3f3f46;
-    --code-bg: #27272a;
-
-    --accent-brand: #ffffff;
-    --accent-brand-hover: #e4e4e7;
-    --accent-brand-bg: rgba(255, 255, 255, 0.08);
-    --accent-brand-border: rgba(255, 255, 255, 0.2);
-    --accent: var(--accent-brand);
-    --accent-hover: var(--accent-brand-hover);
-
-    --accent-success: #34d399;
-    --accent-success-bg: rgba(52, 211, 153, 0.08);
-    --accent-success-border: rgba(52, 211, 153, 0.2);
-
-    --accent-warn: #f87171;
-    --accent-warn-bg: rgba(248, 113, 113, 0.08);
-    --accent-warn-border: rgba(248, 113, 113, 0.2);
-
-    --sidebar-bg: #18181b;
-    --sidebar-text: #f4f4f5;
-    --sidebar-text-muted: #71717a;
-
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-  }
 }
 
 * {
@@ -106,12 +47,13 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-workspace);
-  color: var(--text);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
+  overflow: hidden;
 }
 
-/* Custom Scrollbar Styles for Sleek Layouts */
+/* Smooth custom scrollbar for Light Mode */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -122,10 +64,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(0, 0, 0, 0.18);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text);
+  background: rgba(0, 0, 0, 0.35);
 }

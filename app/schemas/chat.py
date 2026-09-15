@@ -56,8 +56,16 @@ class MessageHistoryResponse(BaseModel):
     """
     messages: list[MessageHistoryItem]
 
+class SessionItem(BaseModel):
+    """
+    Pydantic model representing a session with human-readable title.
+    """
+    id: str
+    title: str
+
 class SessionListResponse(BaseModel):
     """
-    Pydantic model representing the list of active sessions.
+    Pydantic model representing the list of active sessions with titles.
     """
     sessions: list[str]
+    session_items: list[SessionItem] | None = None

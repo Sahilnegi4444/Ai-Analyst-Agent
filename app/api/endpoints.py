@@ -14,6 +14,7 @@ from app.schemas.chat import (
     ChatResponse,
     MessageHistoryItem,
     MessageHistoryResponse,
+    SessionItem,
     SessionListResponse,
     SourceAttribution,
 )
@@ -108,13 +109,15 @@ def chat_with_agent(request: ChatRequest, db: Session = Depends(get_db)):
 @router.get("/sessions", response_model=SessionListResponse)
 def list_chat_sessions(db: Session = Depends(get_db)):
     """
-    Returns a list of unique session IDs sorted by their latest activity.
+    Returns a list of unique session IDs with human-readable titles (first user query).
     """
     try:
         from app.services.memory_service import ChatMemoryService
         memory_service = ChatMemoryService()
-        sessions = memory_service.get_sessions(db)
-        return SessionListResponse(sessions=sessions)
+        items = memory_service.get_sessions_with_titles(db)
+        session_ids = [item["id"] for item in items]
+        session_items = [SessionItem(id=item["id"], title=item["title"]) for item in items]
+        return SessionListResponse(sessions=session_ids, session_items=session_items)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load sessions: {e}")
 
