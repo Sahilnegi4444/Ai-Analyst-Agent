@@ -39,7 +39,7 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({ isOpen, onClose,
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = React.useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -50,18 +50,18 @@ export const AnalyticsModal: React.FC<AnalyticsModalProps> = ({ isOpen, onClose,
       } else {
         setError('Failed to fetch analytics report from server.')
       }
-    } catch (err) {
+    } catch {
       setError('Network error fetching analytics data.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [apiBaseUrl])
 
   useEffect(() => {
     if (isOpen) {
       fetchAnalytics()
     }
-  }, [isOpen])
+  }, [isOpen, fetchAnalytics])
 
   if (!isOpen) return null
 

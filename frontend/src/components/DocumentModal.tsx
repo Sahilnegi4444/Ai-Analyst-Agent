@@ -20,7 +20,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, a
   const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [dragActive, setDragActive] = useState(false)
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = React.useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch(`${apiBaseUrl}/documents`)
@@ -33,14 +33,14 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, a
     } finally {
       setLoading(false)
     }
-  }
+  }, [apiBaseUrl])
 
   useEffect(() => {
     if (isOpen) {
       fetchDocuments()
       setUploadStatus(null)
     }
-  }, [isOpen])
+  }, [isOpen, fetchDocuments])
 
   const handleFileUpload = async (file: File) => {
     if (!file.name.endsWith('.pdf')) {
@@ -71,7 +71,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, a
       } else {
         setUploadStatus({ type: 'error', message: data.detail || 'Failed to upload document.' })
       }
-    } catch (err) {
+    } catch {
       setUploadStatus({ type: 'error', message: 'Network error uploading file.' })
     } finally {
       setUploading(false)
