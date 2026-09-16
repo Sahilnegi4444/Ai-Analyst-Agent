@@ -226,10 +226,18 @@ jobs:
           curl -f -X POST "$RENDER_DEPLOY_HOOK_URL" || echo "Deploy hook trigger skipped or failed."
 
       - name: Deploy Frontend to Vercel
+        continue-on-error: true
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          npm install --global vercel
-          vercel deploy --token "$VERCEL_TOKEN" --name ai-analyst-frontend --yes --prod --cwd frontend --build-env VITE_API_URL="$VITE_API_URL"
+          if [ -n "$VERCEL_TOKEN" ]; then
+            npm install --global vercel
+            npx vercel deploy --prod --yes --token="$VERCEL_TOKEN" --cwd frontend --build-env VITE_API_URL="$VITE_API_URL"
+          else
+            echo "VERCEL_TOKEN secret is not configured in GitHub Secrets. Skipping CLI deployment."
+          fi
+
 
