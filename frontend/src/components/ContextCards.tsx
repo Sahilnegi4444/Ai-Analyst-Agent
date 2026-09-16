@@ -28,8 +28,15 @@ export const ContextCards: React.FC<ContextCardsProps> = ({
     <div className="retrieved-context-container">
       {/* Header bar */}
       <div 
+        role="button"
+        tabIndex={0}
         className="retrieved-context-header"
         onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            setExpanded(!expanded);
+          }
+        }}
         style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -50,7 +57,7 @@ export const ContextCards: React.FC<ContextCardsProps> = ({
       {expanded && (
         <div className="retrieved-cards-list" style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "10px" }}>
           {chunks.map((chunk, idx) => (
-            <div key={idx} className="retrieved-card">
+            <div key={`chunk-${chunk.title}-${idx}`} className="retrieved-card">
               <div className="card-top-row">
                 <div className="card-section-title">
                   <FileText size={14} style={{ color: "#64748b" }} />

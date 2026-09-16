@@ -50,10 +50,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onSelectPrompt }) => {
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", width: "100%", maxWidth: "780px" }}>
-        {suggestions.map((item, idx) => (
+        {suggestions.map((item) => (
           <div
-            key={idx}
+            key={item.title}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelectPrompt && onSelectPrompt(item.prompt)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                onSelectPrompt?.(item.prompt);
+              }
+            }}
             style={{
               padding: "16px",
               borderRadius: "12px",
