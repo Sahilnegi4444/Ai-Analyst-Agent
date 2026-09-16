@@ -508,7 +508,7 @@ function App() {
     setSessionId(sid)
   }
 
-  const handleDeleteSession = async (e: React.MouseEvent, sid: string) => {
+  const handleDeleteSession = async (e: React.SyntheticEvent, sid: string) => {
     e.stopPropagation()
     if (!sid || !/^[a-zA-Z0-9_-]+$/.test(sid)) return
 
@@ -574,17 +574,11 @@ function App() {
               sessions.map(s => {
                 const titleDisplay = formatSessionTitle(s.id, s.title)
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={s.id}
                     className={`session-item-row ${s.id === sessionId ? 'active' : ''}`}
                     onClick={() => handleSelectSession(s.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        handleSelectSession(s.id)
-                      }
-                    }}
                     title={titleDisplay}
                   >
                     <div className="session-item-left">
@@ -593,14 +587,21 @@ function App() {
                         {titleDisplay}
                       </span>
                     </div>
-                    <button
+                    <span
                       className="session-delete-btn"
                       onClick={(e) => handleDeleteSession(e, s.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleDeleteSession(e, s.id)
+                        }
+                      }}
                       title="Delete Chat"
+                      role="button"
+                      tabIndex={0}
                     >
                       <Trash2 size={13} />
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                 )
               })
             ) : (
