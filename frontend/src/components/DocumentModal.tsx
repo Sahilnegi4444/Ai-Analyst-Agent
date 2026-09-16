@@ -161,7 +161,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({ isOpen, onClose, a
             ) : documents.length > 0 ? (
               <div className="doc-grid">
                 {documents.map((doc, idx) => (
-                  <div key={idx} className="doc-card">
+                  <div key={`doc-${doc.filename}-${idx}`} className="doc-card">
                     <div className="doc-card-icon">
                       <FileText size={20} />
                     </div>

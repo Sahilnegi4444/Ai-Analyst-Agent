@@ -39,7 +39,14 @@ export const AssistantReply: React.FC<AssistantReplyProps> = ({
           }}
         >
           <div 
+            role="button"
+            tabIndex={0}
             onClick={() => setShowReasoning(!showReasoning)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                setShowReasoning(!showReasoning);
+              }
+            }}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
           >
             <span style={{ fontWeight: 500, display: "flex", alignItems: "center", gap: "6px" }}>

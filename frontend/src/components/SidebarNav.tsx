@@ -116,8 +116,15 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               sessions.map((sess) => (
                 <div
                   key={sess.id}
+                  role="button"
+                  tabIndex={0}
                   className={`chat-history-item ${activeSessionId === sess.id ? "active" : ""}`}
                   onClick={() => onSelectSession && onSelectSession(sess.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      onSelectSession?.(sess.id);
+                    }
+                  }}
                 >
                   <MessageSquare size={14} className="chat-icon" />
                   <span className="chat-history-label">{sess.title || "Untitled Session"}</span>

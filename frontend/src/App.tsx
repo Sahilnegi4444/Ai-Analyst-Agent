@@ -273,7 +273,7 @@ const SqlResultsWidget: React.FC<{ results: Record<string, unknown>[] }> = ({ re
             </thead>
             <tbody>
               {results.slice(0, 10).map((row, idx) => (
-                <tr key={idx}>
+                <tr key={`row-${idx}`}>
                   {keys.map(key => (
                     <td key={key}>{String(row[key])}</td>
                   ))}
@@ -705,7 +705,7 @@ function App() {
 
                             <div className="context-cards-list">
                               {msg.sources.map((src, idx) => (
-                                <div key={idx} className="retrieved-card">
+                                <div key={`src-${src.filename}-${idx}`} className="retrieved-card">
                                   <div className="card-top-row">
                                     <span className="card-section-title">
                                       ≡ {src.title || src.filename}

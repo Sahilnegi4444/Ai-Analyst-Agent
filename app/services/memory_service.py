@@ -114,7 +114,7 @@ class ChatMemoryService:
             )
             rewritten = response.choices[0].message.content.strip()
             # Clean up potential leading/trailing quotes from LLM
-            if rewritten.startswith('"') and rewritten.endswith('"') or rewritten.startswith("'") and rewritten.endswith("'"):
+            if (rewritten.startswith('"') and rewritten.endswith('"')) or (rewritten.startswith("'") and rewritten.endswith("'")):
                 rewritten = rewritten[1:-1].strip()
 
             print(f"[CONTEXTUALIZER] Original: '{query}' -> Rewritten: '{rewritten}'")
