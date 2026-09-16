@@ -120,4 +120,4 @@ def read_root():
     }
 
 # Include API endpoints router
-app.include_router(api_router, prefix="/api/v1" if False else "")
+app.include_router(api_router)

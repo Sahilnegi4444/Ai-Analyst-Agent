@@ -27,17 +27,11 @@ export const ContextCards: React.FC<ContextCardsProps> = ({
   return (
     <div className="retrieved-context-container">
       {/* Header bar */}
-      <div 
-        role="button"
-        tabIndex={0}
+      <button 
+        type="button"
         className="retrieved-context-header"
         onClick={() => setExpanded(!expanded)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            setExpanded(!expanded);
-          }
-        }}
-        style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+        style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", color: "inherit", font: "inherit", textAlign: "left" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
@@ -45,13 +39,10 @@ export const ContextCards: React.FC<ContextCardsProps> = ({
           </span>
           <span className="retrieved-count-badge">{chunks.length}</span>
         </div>
-        <button 
-          type="button"
-          style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", display: "flex", alignItems: "center" }}
-        >
+        <div style={{ color: "#64748b", display: "flex", alignItems: "center" }}>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-      </div>
+        </div>
+      </button>
 
       {/* Cards list */}
       {expanded && (

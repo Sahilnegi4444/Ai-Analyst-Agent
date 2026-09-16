@@ -38,22 +38,16 @@ export const AssistantReply: React.FC<AssistantReplyProps> = ({
             color: "#475569",
           }}
         >
-          <div 
-            role="button"
-            tabIndex={0}
+          <button 
+            type="button"
             onClick={() => setShowReasoning(!showReasoning)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                setShowReasoning(!showReasoning);
-              }
-            }}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+            style={{ width: "100%", background: "none", border: "none", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: 0, color: "inherit", font: "inherit" }}
           >
             <span style={{ fontWeight: 500, display: "flex", alignItems: "center", gap: "6px" }}>
               🧠 Thought Process / Reasoning
             </span>
             {showReasoning ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
+          </button>
           {showReasoning && (
             <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #e2e8f0", fontSize: "12px", whiteSpace: "pre-wrap", color: "#64748b" }}>
               {reasoning}

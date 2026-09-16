@@ -28,57 +28,32 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onSelectPrompt }) => {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: "20px", textAlign: "center" }}>
-      <div style={{
-        width: "56px",
-        height: "56px",
-        borderRadius: "16px",
-        backgroundColor: "#f1f5f9",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: "16px",
-      }}>
-        <Sparkles size={28} style={{ color: "#3b82f6" }} />
+    <div className="welcome-container">
+      <div className="welcome-avatar-gpt">
+        <Sparkles size={28} />
       </div>
 
-      <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#0f172a", marginBottom: "8px" }}>
+      <h2 className="greeting-text">
         AI Analyst & RAG Assistant
       </h2>
-      <p style={{ fontSize: "14px", color: "#64748b", maxWidth: "460px", marginBottom: "28px" }}>
+      <p className="welcome-subtitle">
         Ask questions about your database schemas, legal documents, or automated analytical workflows.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", width: "100%", maxWidth: "780px" }}>
+      <div className="suggest-grid">
         {suggestions.map((item) => (
-          <div
+          <button
             key={item.title}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectPrompt && onSelectPrompt(item.prompt)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                onSelectPrompt?.(item.prompt);
-              }
-            }}
-            style={{
-              padding: "16px",
-              borderRadius: "12px",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
-              textAlign: "left",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-            }}
-            className="suggestion-card hover:border-slate-300 hover:shadow-md"
+            type="button"
+            onClick={() => onSelectPrompt?.(item.prompt)}
+            className="suggest-card"
           >
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
               {item.icon}
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>{item.title}</span>
+              <span className="suggest-card-title">{item.title}</span>
             </div>
-            <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>{item.desc}</p>
-          </div>
+            <p className="suggest-card-desc" style={{ margin: 0 }}>{item.desc}</p>
+          </button>
         ))}
       </div>
     </div>
