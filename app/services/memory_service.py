@@ -144,6 +144,38 @@ class ChatMemoryService:
 
         return [row[0] for row in rows]
 
+    def get_sessions_with_titles(self, db: Session) -> list[dict[str, str]]:
+        """
+        Retrieves unique sessions with human titles (first user query text).
+        """
+        subquery = (
+            db.query(
+                ChatMessage.session_id,
+                func.max(ChatMessage.timestamp).label("last_activity")
+            )
+            .group_by(ChatMessage.session_id)
+            .subquery()
+        )
+
+        rows = (
+            db.query(subquery.c.session_id)
+            .order_by(subquery.c.last_activity.desc())
+            .all()
+        )
+
+        results = []
+        for (sid,) in rows:
+            first_user_msg = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.session_id == sid, ChatMessage.sender == "user")
+                .order_by(ChatMessage.id.asc())
+                .first()
+            )
+            title = first_user_msg.text if first_user_msg and first_user_msg.text else sid
+            results.append({"id": sid, "title": title})
+
+        return results
+
     def delete_session(self, db: Session, session_id: str):
         """
         Deletes all message history records associated with a session ID.
